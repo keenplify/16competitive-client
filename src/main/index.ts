@@ -16,7 +16,7 @@ import { createEarlyAssetSync } from '../shared/early-asset-sync'
 import { validateReportImages } from '../shared/diagnostic-logs'
 import { STICKER_CHANNELS } from '../shared/stickers'
 import { listStickers, buySticker, removeSticker, applySticker, getStickerImage } from './skins'
-import { listMusicKits, buyMusicKit, equipMusicKit, previewMusicKit } from './skins'
+import { listMusicKits, buyMusicKit, equipMusicKit, previewMusicKit, saveMusicMix } from './skins'
 import { listCollections, getCollection, getCollectionQuote, buyCollection } from './skins'
 import { initializePartnerAppIdentity, type InstalledAppIdentity } from './partner-app-identity'
 import { DEFAULT_APP_NAME, INSTALLED_APP_ID } from '../shared/partner-app-shortcuts'
@@ -1227,6 +1227,7 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(STICKER_CHANNELS.image, (_event, path) => getStickerImage(path))
   ipcMain.handle(SKIN_CHANNELS.musicKits, () => listMusicKits())
+  ipcMain.handle(SKIN_CHANNELS.musicMix, (_, mix: unknown) => saveMusicMix(mix))
   ipcMain.handle(SKIN_CHANNELS.collections, () => listCollections())
   ipcMain.handle(SKIN_CHANNELS.collection, (_, id: unknown) => getCollection(id))
   ipcMain.handle(SKIN_CHANNELS.collectionQuote, (_, id: unknown, currency: unknown) =>

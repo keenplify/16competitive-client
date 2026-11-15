@@ -822,6 +822,16 @@ UI polish unless the user explicitly requests them. Keep naturally circular
 elements, such as avatars or status dots, when their shape serves a clear purpose.
 This project preference takes precedence over generic design-skill radius guidance.
 
+### VGUI dialog close controls
+
+VGUI dialogs must have exactly one close control. `ModalDialog` already supplies
+the VGUI title-bar close button when `vguiTitlebar` is enabled. Do not add another
+X, Close, or Cancel button that only dismisses the same dialog inside its content.
+If a dialog supplies its own window header, set `vguiTitlebar={false}` and provide
+one close control there. For non-VGUI themes, show a content close button only
+when the shared dialog does not supply one. Check the rendered dialog in VGUI
+and non-VGUI themes before considering a new or changed popup complete.
+
 ### Internationalization
 
 Always internationalize user-facing text when adding or changing UI. Include labels,

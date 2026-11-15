@@ -9,6 +9,36 @@ import {
   validateMusicTeam
 } from '../src/shared/music-kits.ts'
 
+test('mixer validation keeps Off separate from Selected and checks ownership in snapshots', async () => {
+  const { parseMusicMix, musicMvpKitId, MUSIC_CUE_GROUPS, MUSIC_EVENTS } =
+    await import('../src/shared/music-kits.ts')
+  assert.deepEqual(parseMusicMix({ muted: true, cues: { mvp: null } }), {
+    muted: true,
+    cues: { mvp: null }
+  })
+  assert.equal(musicMvpKitId(snapshot(), 'ct'), 'quake')
+  assert.equal(
+    musicMvpKitId({ ...snapshot(), mix: { muted: false, cues: { mvp: null } } }, 'ct'),
+    null
+  )
+  const mixed = { ...snapshot(), mix: { muted: false, cues: { mvp: 'quake' } } }
+  assert.equal(musicMvpKitId(parseMusicKits(mixed), 't'), 'quake')
+  for (const input of [
+    null,
+    [],
+    { muted: 'yes', cues: {} },
+    { muted: false, cues: { unknown: null } },
+    { muted: false, cues: { mvp: '../kit' } }
+  ])
+    assert.throws(() => parseMusicMix(input))
+  assert.throws(() =>
+    parseMusicKits({ ...snapshot(), mix: { muted: false, cues: { mvp: 'unowned' } } })
+  )
+  const events = MUSIC_CUE_GROUPS.flat()
+  assert.equal(new Set(events).size, events.length)
+  assert.deepEqual([...events].sort(), [...MUSIC_EVENTS].sort())
+})
+
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const snapshot = () => ({
   kits: [{ id: 'quake', name: 'Quake', pricePoints: 0, enabled: true, logoPath: null, sounds: {} }],

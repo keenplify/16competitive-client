@@ -53,7 +53,11 @@ const labels: Record<MusicEvent, readonly [TranslationKey, string | null]> = {
   startround_03: ['music.cue.startround', '3'],
   wonround: ['music.cue.wonround', null]
 }
-export function musicCueLabel(t: (key: TranslationKey) => string, event: MusicEvent): string {
+export function musicCueLabel(
+  t: (key: TranslationKey) => string,
+  event: MusicEvent,
+  showVariant = true
+): string {
   const [key, variant] = labels[event]
-  return t(key) + (variant ? ` (${variant})` : '')
+  return t(key) + (variant && showVariant ? ` (${variant})` : '')
 }

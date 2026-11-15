@@ -7,11 +7,14 @@ import { useNavigationStore } from '../src/renderer/src/features/navigation/navi
 import { useLauncherThemeStore } from '../src/renderer/src/features/settings/launcher-theme.store'
 import { useMusicKitsStore } from '../src/renderer/src/features/skins/music-kits.store'
 import { useAuthStore } from '../src/renderer/src/features/auth/auth.store'
+import { useLanguageStore } from '../src/renderer/src/features/i18n/i18n'
+import { ToastContainer } from 'react-toastify'
 import type { MusicKitSnapshot } from '../src/shared/music-kits'
 import '../src/renderer/src/assets/main.css'
 
 const sample: MusicKitSnapshot = {
   ownedIds: ['quake', 'arena-demo'],
+  mix: { muted: false, cues: {} },
   equipped: { ct: 'quake', t: 'quake' },
   kits: [
     {
@@ -20,7 +23,11 @@ const sample: MusicKitSnapshot = {
       pricePoints: 0,
       enabled: true,
       logoPath: null,
-      sounds: {},
+      sounds: {
+        mvp: `sound/16competitive/music/${'a'.repeat(32)}/audio.wav`,
+        startofmatch: `sound/16competitive/music/${'b'.repeat(32)}/audio.wav`,
+        startround_02: `sound/16competitive/music/${'c'.repeat(32)}/audio.wav`
+      },
       logoUrl: '/scripts/music-kit-sample-logo.svg'
     },
     {
@@ -29,11 +36,17 @@ const sample: MusicKitSnapshot = {
       pricePoints: 2500,
       enabled: true,
       logoPath: null,
-      sounds: {},
+      sounds: {
+        mvp: `sound/16competitive/music/${'a'.repeat(32)}/audio.wav`,
+        startofmatch: `sound/16competitive/music/${'b'.repeat(32)}/audio.wav`,
+        startround_02: `sound/16competitive/music/${'c'.repeat(32)}/audio.wav`
+      },
       logoUrl: '/scripts/music-kit-sample-logo.svg'
     }
   ]
 }
+// Isolated design/runtime controls; no production session or account data.
+Object.assign(window, { musicKitDesign: { store: useMusicKitsStore, language: useLanguageStore } })
 window.api = {
   matchHistory: { getPlayerProfile: async () => null },
   models: {
@@ -69,6 +82,13 @@ window.api = {
     musicEquip: async (id: string | null) => {
       sample.equipped = { ct: id, t: id }
     },
+    musicMix: async (mix) => {
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      if (new URLSearchParams(location.search).get('save') === 'error')
+        throw new Error('Fixture save failed')
+      sample.mix = structuredClone(mix)
+      return structuredClone(sample)
+    },
     musicPreview: async () => {
       throw new Error('This visual fixture does not play sample audio')
     }
@@ -101,6 +121,7 @@ document.head.append(style)
 createRoot(document.getElementById('root')!).render(
   <main className="min-h-screen p-4 text-white" style={{ background: '#203f5f' }}>
     <ProfilePage />
+    <ToastContainer position="bottom-right" theme="dark" />
   </main>
 )
 if (new URLSearchParams(location.search).get('filter') === 'music')

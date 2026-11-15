@@ -1,10 +1,12 @@
+import { MusicKitMixer } from './MusicKitMixer'
 import { musicCueLabel } from './music-cue-label'
 import { useEffect, useId, type JSX } from 'react'
-import { Headphones, LoaderCircle, Play, Square, X } from 'lucide-react'
+import { Headphones, LoaderCircle, Play, Settings, Square, X } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import {
   musicKitEvents,
   musicKitPreviewEvent,
+  musicMvpKitId,
   type MusicEvent,
   type MusicKit,
   type MusicTeam
@@ -89,10 +91,10 @@ export function MusicKitSlot({
   const pending = useMusicKitsStore((s) => s.pending)
   const status = useMusicKitsStore((s) => s.status)
   const selected = useMusicKitsStore((s) => s.filterTeam === team)
-  const equip = useMusicKitsStore((s) => s.equip)
-  const id = snapshot?.equipped[team]
+  const selectMvp = useMusicKitsStore((s) => s.selectMvp)
+  const id = snapshot ? musicMvpKitId(snapshot, team) : undefined
   const kit = snapshot?.kits.find((k) => k.id === id)
-  const title = `${t('music.item')}: ${kit ? kit.name : t('music.empty')}`
+  const title = `${t('music.mvp')}: ${kit ? kit.name : t('music.mixOff')}`
   return (
     <div className={twMerge('flex flex-col items-center gap-1.5', className)}>
       <div
@@ -119,14 +121,24 @@ export function MusicKitSlot({
             />
           )}
         </button>
+        <button
+          type="button"
+          disabled={disabled || pending || status !== 'ready'}
+          aria-label={t('music.mixTitle')}
+          title={t('music.mixTitle')}
+          onClick={() => useMusicKitsStore.getState().openMixer(team)}
+          className="absolute right-0 top-0 flex size-5 items-center justify-center border border-white/30 bg-neutral-950 text-white hover:bg-sky-800 focus-visible:outline-2 focus-visible:outline-sky-300 disabled:opacity-50"
+        >
+          <Settings className="size-3" aria-hidden="true" />
+        </button>
         {id != null && (
           <button
             type="button"
             disabled={disabled || pending || status !== 'ready'}
-            aria-label={t('music.clear', { team: team.toUpperCase() })}
-            title={t('music.clear', { team: team.toUpperCase() })}
+            aria-label={t('music.clearMvp')}
+            title={t('music.clearMvp')}
             onClick={() => {
-              void equip(null, team)
+              void selectMvp(null)
             }}
             className="absolute right-0 bottom-0 flex size-5 items-center justify-center border border-white/30 bg-neutral-950 text-white hover:bg-rose-700 focus-visible:outline-2 focus-visible:outline-sky-300 disabled:opacity-50"
           >
@@ -138,7 +150,8 @@ export function MusicKitSlot({
           </button>
         )}
       </div>
-      <span className="text-center text-[10px] font-bold text-neutral-300">{t('music.item')}</span>
+      <span className="text-center text-[10px] font-bold text-neutral-300">{t('music.mvp')}</span>
+      <MusicKitMixer team={team} />
     </div>
   )
 }
@@ -167,7 +180,7 @@ export function MusicKitInventory({
       </div>
       <div className="flex min-h-52 flex-wrap items-start gap-3">
         {kits.map((kit) => {
-          const equipped = state.snapshot!.equipped[team] === kit.id
+          const equipped = musicMvpKitId(state.snapshot!, team) === kit.id
           return (
             <article
               key={kit.id}
@@ -180,8 +193,8 @@ export function MusicKitInventory({
                 type="button"
                 disabled={disabled || state.pending || state.status !== 'ready'}
                 aria-pressed={equipped}
-                title={t('music.equipTeam', { team: team.toUpperCase(), name: kit.name })}
-                onClick={() => void state.equip(kit.id, team)}
+                title={t('music.chooseMvp', { name: kit.name })}
+                onClick={() => void state.selectMvp(kit.id)}
                 className="flex w-full flex-col items-center gap-2 focus-visible:outline-2 focus-visible:outline-sky-300"
               >
                 <MusicKitArtwork kit={kit} className="h-28 w-full" />
@@ -199,7 +212,9 @@ export function MusicKitInventory({
                 className="mt-2 h-8 w-full min-w-0 text-xs"
               >
                 {musicKitEvents(kit).map((event) => (
-                  <option key={event} value={event}>{musicCueLabel(t, event)}</option>
+                  <option key={event} value={event}>
+                    {musicCueLabel(t, event)}
+                  </option>
                 ))}
               </SelectField>
               <Button

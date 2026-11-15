@@ -688,6 +688,13 @@ const skins = {
     if (hash !== key.split('/')[3]) throw new Error('STICKER_IMAGE_INVALID')
     return bytes
   },
+  async musicMix(mix: import('../shared/music-kits').MusicMix) {
+    const { parseMusicMix } = await import('../shared/music-kits')
+    return musicKitLogoUrls(
+      parseMusicKits(await jsonPost('/music-kits/mix', parseMusicMix(mix))),
+      currentApiOrigin()
+    )
+  },
   async musicKits() {
     return musicKitLogoUrls(
       parseMusicKits(await authenticatedGet('/music-kits?cues=v2')),
@@ -746,7 +753,7 @@ const skins = {
       `/music-kits/${validateMusicKitId(id)}/preview?event=${validateMusicEvent(event)}`,
       { authenticated: true }
     )
-    if (bytes.byteLength > 2_000_000) throw new Error('MUSIC_PREVIEW_FAILED')
+    if (bytes.byteLength > 24 * 1024 * 1024) throw new Error('MUSIC_PREVIEW_FAILED')
     return bytes
   },
   async list(weaponKey?: string): Promise<Skin[]> {

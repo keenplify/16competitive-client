@@ -11,6 +11,7 @@ export const SKIN_CHANNELS = {
   musicKits: 'skins:music-kits',
   musicBuy: 'skins:music-buy',
   musicEquip: 'skins:music-equip',
+  musicMix: 'skins:music-mix',
   musicPreview: 'skins:music-preview',
   payments: 'skins:payments',
   withdrawalOptions: 'skins:withdrawal-options',
@@ -187,6 +188,7 @@ export interface SkinsApi {
     currency?: 'POINTS' | 'P_CASH'
   ): Promise<{ points: number; pCash?: number }>
   musicEquip(id: string | null, team: import('./music-kits').MusicTeam): Promise<void>
+  musicMix(mix: import('./music-kits').MusicMix): Promise<import('./music-kits').MusicKitSnapshot>
   musicPreview(id: string, event: import('./music-kits').MusicEvent): Promise<ArrayBuffer>
   payments(): Promise<PaymentSnapshot>
   withdrawalOptions(): Promise<import('./withdrawals').WithdrawalOptions>
@@ -205,7 +207,11 @@ export interface SkinsApi {
     reference: string
   ): Promise<import('./payments').ManualOrder>
   cancelManualPayment(id: string): Promise<import('./payments').ManualOrder>
-  createPayment(requestId: string, amount: number, provider?: 'paymento' | 'paymongo'): Promise<PaymentOrder>
+  createPayment(
+    requestId: string,
+    amount: number,
+    provider?: 'paymento' | 'paymongo'
+  ): Promise<PaymentOrder>
   refreshPayment(id: string, provider?: 'paymento' | 'paymongo'): Promise<PaymentSnapshot>
   list(weaponKey?: string): Promise<Skin[]>
   mine(gameVersion?: GameVersion): Promise<OwnedSkin[]>

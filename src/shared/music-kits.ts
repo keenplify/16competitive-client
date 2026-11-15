@@ -53,6 +53,69 @@ export const MUSIC_EVENTS = [
 ] as const
 export type MusicTeam = 'ct' | 't'
 export type MusicEvent = (typeof MUSIC_EVENTS)[number]
+export interface MusicMix {
+  muted: boolean
+  /** Missing = selected kit; null = off; string = an owned kit. */
+  cues: Partial<Record<MusicEvent, string | null>>
+}
+
+export function parseMusicMix(value: unknown): MusicMix {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new Error('INVALID_MUSIC_MIX')
+  const raw = value as Record<string, unknown>
+  if (
+    typeof raw.muted !== 'boolean' ||
+    !raw.cues ||
+    typeof raw.cues !== 'object' ||
+    Array.isArray(raw.cues)
+  )
+    throw new Error('INVALID_MUSIC_MIX')
+  const cues: MusicMix['cues'] = {}
+  for (const [event, id] of Object.entries(raw.cues))
+    cues[validateMusicEvent(event)] = id === null ? null : validateMusicKitId(id)
+  return { muted: raw.muted, cues }
+}
+
+/** Variations share one preference, retaining the kit's natural variation. */
+export const MUSIC_CUE_GROUPS: readonly (readonly MusicEvent[])[] = [
+  ['startofmatch', 'legacy_cs_stinger'],
+  ['startround_01', 'startround_02', 'startround_03'],
+  ['startaction_01', 'startaction_02', 'startaction_03'],
+  [
+    'deathcam',
+    'legacy_deathcam_gg_01',
+    'legacy_deathcam_gg_02',
+    'legacy_deathcam_gg_03',
+    'legacy_deathcam_stinger'
+  ],
+  ['bombplanted'],
+  ['bombtenseccount', 'bombtenseccountx'],
+  ['roundtenseccount', 'legacy_finalfight'],
+  ['mvp', 'roundmvpanthem_02', 'roundmvpanthem_03'],
+  ['wonround'],
+  ['lostround'],
+  ['endofmatch', 'legacy_survival_review_victory'],
+  ['chooseteam'],
+  ['loading'],
+  ['mainmenu', 'mainmenu_02', 'mainmenu_03'],
+  ['firstblood'],
+  ['headshot'],
+  ['humiliation'],
+  ['doublekill'],
+  ['triplekill'],
+  ['quadrakill'],
+  ['pentakill'],
+  ['killingspree'],
+  ['rampage'],
+  ['dominating', 'legacy_dominating'],
+  ['unstoppable'],
+  ['godlike'],
+  ['legacy_kill_01', 'legacy_kill_02', 'legacy_kill_03', 'legacy_kill_bonus'],
+  ['legacy_nemesis'],
+  ['legacy_revenge'],
+  ['legacy_point_captured_ct'],
+  ['legacy_point_captured_t']
+]
 export interface MusicKit {
   id: string
   name: string
@@ -72,6 +135,13 @@ export interface MusicKitSnapshot {
   kits: MusicKit[]
   ownedIds: string[]
   equipped: Record<MusicTeam, string | null>
+  mix?: MusicMix
+}
+
+/** The loadout badge represents the MVP anthem, even when other cues are mixed. */
+export function musicMvpKitId(snapshot: MusicKitSnapshot, team: MusicTeam): string | null {
+  const override = snapshot.mix?.cues.mvp
+  return override === undefined ? snapshot.equipped[team] : override
 }
 export function validateMusicKitId(id: unknown): string {
   if (typeof id !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,47}$/.test(id))
@@ -150,7 +220,9 @@ export function parseMusicKits(value: unknown): MusicKitSnapshot {
     if (
       k.bgmPath != null &&
       (typeof k.bgmPath !== 'string' ||
-        ! /^(?:media\/16competitive\/music\/[a-f0-9]{64}\/bgm\.(?:mp3|wav)|sound\/16competitive\/music\/[a-f0-9]{32}\/audio\.wav)$/.test(k.bgmPath))
+        !/^(?:media\/16competitive\/music\/[a-f0-9]{64}\/bgm\.(?:mp3|wav)|sound\/16competitive\/music\/[a-f0-9]{32}\/audio\.wav)$/.test(
+          k.bgmPath
+        ))
     )
       throw new Error('INVALID_MUSIC_BGM')
     return {
@@ -181,7 +253,14 @@ export function parseMusicKits(value: unknown): MusicKitSnapshot {
     )
   )
     throw new Error('INVALID_MUSIC_KITS')
-  return { kits, equipped, ownedIds }
+  const mix = s.mix === undefined ? { muted: false, cues: {} } : parseMusicMix(s.mix)
+  if (
+    Object.values(mix.cues).some(
+      (id) => id !== null && (!ownedIds.includes(id) || !kits.some((k) => k.id === id))
+    )
+  )
+    throw new Error('INVALID_MUSIC_MIX')
+  return { kits, equipped, ownedIds, mix }
 }
 
 export function parseMusicArtistUrl(value: unknown): string | null {

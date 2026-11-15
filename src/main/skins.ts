@@ -1,5 +1,5 @@
 import { parseGameVersion } from '../shared/game-version'
-import { validateMusicBuy, parseMusicPurchase } from '../shared/music-kits'
+import { parseMusicMix, validateMusicBuy, parseMusicPurchase } from '../shared/music-kits'
 import { cachedStickerImage } from './game/sticker-image-cache'
 import { parseStickerPurchase } from '../shared/stickers'
 import { stockStickerModel } from '../shared/stock-sticker-models'
@@ -696,6 +696,17 @@ const musicRequest = async (path: string, init?: RequestInit): Promise<unknown> 
 }
 export const listMusicKits = async () =>
   musicKitLogoUrls(parseMusicKits(await musicRequest('/music-kits?cues=v2')), await getSkinApiUrl())
+export const saveMusicMix = async (mix: unknown) =>
+  musicKitLogoUrls(
+    parseMusicKits(
+      await musicRequest('/music-kits/mix', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(parseMusicMix(mix))
+      })
+    ),
+    await getSkinApiUrl()
+  )
 export const buyMusicKit = async (
   id: unknown,
   expectedPrice: unknown,
@@ -730,10 +741,10 @@ export const previewMusicKit = async (id: unknown, event: unknown): Promise<Arra
     headers: { authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(10_000)
   })
-  if (!response.ok || Number(response.headers.get('content-length')) > 2_000_000)
+  if (!response.ok || Number(response.headers.get('content-length')) > 24 * 1024 * 1024)
     throw new Error('MUSIC_PREVIEW_FAILED')
   const bytes = await response.arrayBuffer()
-  if (bytes.byteLength > 2_000_000) throw new Error('MUSIC_PREVIEW_FAILED')
+  if (bytes.byteLength > 24 * 1024 * 1024) throw new Error('MUSIC_PREVIEW_FAILED')
   return bytes
 }
 

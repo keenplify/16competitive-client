@@ -124,7 +124,7 @@ const antiCheat: AntiCheatApi = {
 
 const rewards: RewardInboxApi = {
   pending: () => ipcRenderer.invoke(REWARD_CHANNELS.pending),
-  consume: ids => ipcRenderer.invoke(REWARD_CHANNELS.consume, ids)
+  consume: (ids) => ipcRenderer.invoke(REWARD_CHANNELS.consume, ids)
 }
 
 const dailyQuests: DailyQuestsApi = {
@@ -340,6 +340,7 @@ const skins: SkinsApi = {
   musicBuy: (id, price, currency) =>
     ipcRenderer.invoke(SKIN_CHANNELS.musicBuy, id, price, currency),
   musicEquip: (id, team) => ipcRenderer.invoke(SKIN_CHANNELS.musicEquip, id, team),
+  musicMix: (mix) => ipcRenderer.invoke(SKIN_CHANNELS.musicMix, mix),
   musicPreview: (id, event) => ipcRenderer.invoke(SKIN_CHANNELS.musicPreview, id, event),
   payments: () => ipcRenderer.invoke(SKIN_CHANNELS.payments),
   withdrawalOptions: () => ipcRenderer.invoke(SKIN_CHANNELS.withdrawalOptions),

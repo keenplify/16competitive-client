@@ -4,6 +4,7 @@ import { usePaymentsStore } from './payments.store'
 import type { MusicCurrency } from '../../../../shared/music-kits'
 import { create } from 'zustand'
 import type {
+  MusicMix,
   MusicEvent,
   MusicKit,
   MusicKitSnapshot,
@@ -14,6 +15,12 @@ import { toast } from 'react-toastify'
 import { translate, useLanguageStore, type TranslationKey } from '../i18n/i18n'
 
 type MusicState = {
+  mixerTeam: MusicTeam | null
+  openMixer: (team: MusicTeam) => void
+  closeMixer: () => void
+  saveMix: (mix: MusicMix) => Promise<void>
+  selectMvp: (id: string | null) => Promise<void>
+  playingEvent: MusicEvent | null
   open: boolean
   snapshot: MusicKitSnapshot | null
   status: 'idle' | 'loading' | 'ready' | 'error'
@@ -39,7 +46,7 @@ type MusicState = {
   equip: (id: string | null, team: MusicTeam) => Promise<void>
   filterTeam: MusicTeam | null
   setFilterTeam: (team: MusicTeam | null) => void
-  preview: (id: string) => Promise<void>
+  preview: (id: string, event?: MusicEvent) => Promise<void>
   stopPreview: () => void
 }
 let releasePreviewMute: (() => void) | null = null
@@ -69,7 +76,60 @@ const errorKey = (error: unknown): MusicState['error'] => {
           ? 'music.changed'
           : 'music.error'
 }
+export const MUSIC_MIXER_TOAST_ID = 'music-mixer'
 export const useMusicKitsStore = create<MusicState>((set, get) => ({
+  mixerTeam: null,
+  openMixer: (mixerTeam) => {
+    get().stopPreview()
+    set({ mixerTeam })
+  },
+  closeMixer: () => {
+    if (get().pending) return
+    get().stopPreview()
+    set({ mixerTeam: null })
+  },
+  saveMix: async (mix) => {
+    if (get().pending) return
+    const generation = accountGeneration
+    const t = (key: TranslationKey): string => translate(useLanguageStore.getState().language, key)
+    const target = { containerId: get().mixerTeam ? MUSIC_MIXER_TOAST_ID : undefined }
+    const feedback = toast.loading(t('music.processing'), target)
+    get().stopPreview()
+    set({ pending: true, error: null })
+    try {
+      const snapshot = await window.api.skins.musicMix(mix)
+      if (generation !== accountGeneration) throw new Error('ACCOUNT_CHANGED')
+      ++loadGeneration
+      set({ snapshot, status: 'ready' })
+      toast.update(feedback, {
+        ...target,
+        render: t('music.mixSaved'),
+        type: 'success',
+        isLoading: false,
+        autoClose: 3000
+      })
+    } catch (e) {
+      if (generation === accountGeneration) set({ error: errorKey(e) })
+      toast.update(feedback, {
+        ...target,
+        render: t(errorKey(e) ?? 'music.error'),
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000
+      })
+    } finally {
+      if (generation === accountGeneration) set({ pending: false })
+    }
+  },
+  selectMvp: async (id) => {
+    const current = get().snapshot?.mix ?? { muted: false, cues: {} }
+    await get().saveMix({
+      ...current,
+      muted: id === null ? current.muted : false,
+      cues: { ...current.cues, mvp: id, roundmvpanthem_02: id, roundmvpanthem_03: id }
+    })
+  },
+  playingEvent: null,
   open: false,
   snapshot: null,
   status: 'idle',
@@ -190,19 +250,27 @@ export const useMusicKitsStore = create<MusicState>((set, get) => ({
   },
   stopPreview: () => {
     stopAudio()
-    set({ playingId: null })
+    set({ playingId: null, playingEvent: null })
   },
-  preview: async (id) => {
-    const wasPlaying = get().playingId === id
+  preview: async (id, requested) => {
+    const wasPlaying = get().playingId === id && (!requested || get().playingEvent === requested)
     stopAudio()
-    set({ playingId: null, error: null })
+    set({ playingId: null, playingEvent: null, error: null })
     if (wasPlaying) return
     const kit = get().snapshot?.kits.find((kit) => kit.id === id)
-    const event = kit ? musicKitPreviewEvent(kit, get().event) : undefined
+    const event = kit
+      ? requested
+        ? kit.sounds[requested]
+          ? requested
+          : undefined
+        : musicKitPreviewEvent(kit, get().event)
+      : undefined
     const t = (key: TranslationKey): string => translate(useLanguageStore.getState().language, key)
-    const feedback = toast.loading(t('music.processing'))
+    const target = { containerId: get().mixerTeam ? MUSIC_MIXER_TOAST_ID : undefined }
+    const feedback = toast.loading(t('music.processing'), target)
+    let feedbackSettled = false
     const generation = previewGeneration
-    set({ playingId: id })
+    set({ playingId: id, playingEvent: event ?? null })
     try {
       if (!event) throw new Error('MUSIC_PREVIEW_UNAVAILABLE')
       const bytes = await window.api.skins.musicPreview(id, event)
@@ -219,26 +287,32 @@ export const useMusicKitsStore = create<MusicState>((set, get) => ({
       audio.onended = () => {
         if (generation !== previewGeneration) return
         stopAudio()
-        set({ playingId: null })
+        set({ playingId: null, playingEvent: null })
       }
       let started = false
       audio.onerror = () => {
         if (!started || generation !== previewGeneration) return
         stopAudio()
-        set({ playingId: null, error: 'music.error' })
-        toast.error(t('music.error'))
+        set({ playingId: null, playingEvent: null, error: 'music.error' })
+        toast.error(t('music.error'), target)
       }
       releasePreviewMute = launcherAudio.muteBgmForPreview()
       await audio.play()
+      if (generation !== previewGeneration) return
       started = true
+      feedbackSettled = true
       toast.update(feedback, {
+        ...target,
         render: t('music.preview'),
         type: 'success',
         isLoading: false,
         autoClose: 2000
       })
     } catch (e) {
+      if (generation !== previewGeneration) return
+      feedbackSettled = true
       toast.update(feedback, {
+        ...target,
         render: t(errorKey(e) ?? 'music.error'),
         type: 'error',
         isLoading: false,
@@ -246,10 +320,13 @@ export const useMusicKitsStore = create<MusicState>((set, get) => ({
       })
       if (generation === previewGeneration) {
         stopAudio()
-        set({ playingId: null, error: errorKey(e) })
+        set({ playingId: null, playingEvent: null, error: errorKey(e) })
       }
     } finally {
-      if (generation !== previewGeneration) toast.dismiss(feedback)
+      if (!feedbackSettled && generation !== previewGeneration) {
+        if (target.containerId) toast.dismiss({ id: feedback, containerId: target.containerId })
+        else toast.dismiss(feedback)
+      }
     }
   }
 }))
@@ -258,6 +335,8 @@ useAuthStore.subscribe((state, previous) => {
   accountGeneration++
   stopAudio()
   useMusicKitsStore.setState({
+    mixerTeam: null,
+    playingEvent: null,
     open: false,
     snapshot: null,
     status: 'idle',

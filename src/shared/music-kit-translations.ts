@@ -1,5 +1,16 @@
 export const musicKitTranslations = {
   en: {
+    'music.mixKeyboard':
+      'Use the arrow keys to browse sounds, Enter to select, and Escape to close the list.',
+    'music.chooseMvp': 'Use {{name}} as MVP anthem',
+    'music.clearMvp': 'Turn MVP anthems off',
+    'music.mixTitle': 'In-game music mixer',
+    'music.mixOff': 'Off',
+    'music.mixSelected': 'Selected — {{name}}',
+    'music.mixHelp':
+      'Choose owned kits for each event. Missing sounds stay silent. MVP uses the winner’s mix; Off also mutes shared anthems for you.',
+    'music.mixSaved': 'Music mix saved. Changes apply to your next match.',
+    'music.mixClose': 'Close music mixer',
     'music.cue.bombplanted': 'Bomb planted',
     'music.cue.bombtenseccount': 'Bomb: 10 seconds',
     'music.cue.chooseteam': 'Choose team',
@@ -119,6 +130,17 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Loadout team'
   },
   ru: {
+    'music.mixKeyboard':
+      'Выбирайте звуки стрелками, нажмите Enter для выбора и Escape для закрытия списка.',
+    'music.chooseMvp': 'Выбрать {{name}} для гимна MVP',
+    'music.clearMvp': 'Отключить гимны MVP',
+    'music.mixTitle': 'Микшер игровой музыки',
+    'music.mixOff': 'Выкл.',
+    'music.mixSelected': 'Выбрано — {{name}}',
+    'music.mixHelp':
+      'Выберите свои наборы для каждого события. Отсутствующие звуки не заменяются. MVP использует микс победителя; «Выкл.» отключает общие гимны и для вас.',
+    'music.mixSaved': 'Микс сохранён. Изменения применятся в следующем матче.',
+    'music.mixClose': 'Закрыть микшер',
     'music.cue.bombplanted': 'Бомба заложена',
     'music.cue.bombtenseccount': 'Бомба: 10 секунд',
     'music.cue.chooseteam': 'Выбор команды',
@@ -236,6 +258,17 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Команда снаряжения'
   },
   tl: {
+    'music.mixKeyboard':
+      'Gamitin ang arrow keys para pumili ng tunog, Enter para piliin, at Escape para isara ang listahan.',
+    'music.chooseMvp': 'Gamitin ang {{name}} bilang MVP anthem',
+    'music.clearMvp': 'I-off ang MVP anthems',
+    'music.mixTitle': 'In-game music mixer',
+    'music.mixOff': 'Off',
+    'music.mixSelected': 'Napili — {{name}}',
+    'music.mixHelp':
+      'Pumili ng pag-aari mong kit sa bawat event. Tahimik kapag walang tunog. Mix ng nanalo ang MVP; imu-mute rin ng Off ang shared anthem para sa iyo.',
+    'music.mixSaved': 'Na-save ang music mix. Sa susunod na match ito gagana.',
+    'music.mixClose': 'Isara ang music mixer',
     'music.cue.bombplanted': 'Naitanim ang bomba',
     'music.cue.bombtenseccount': 'Bomba: 10 segundo',
     'music.cue.chooseteam': 'Pumili ng koponan',
@@ -354,6 +387,17 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Loadout team'
   },
   th: {
+    'music.mixKeyboard':
+      'ใช้ปุ่มลูกศรเพื่อเลือกเสียง กด Enter เพื่อยืนยัน และ Escape เพื่อปิดรายการ',
+    'music.chooseMvp': 'ใช้ {{name}} เป็นเพลง MVP',
+    'music.clearMvp': 'ปิดเพลง MVP',
+    'music.mixTitle': 'มิกเซอร์เพลงในเกม',
+    'music.mixOff': 'ปิด',
+    'music.mixSelected': 'ที่เลือก — {{name}}',
+    'music.mixHelp':
+      'เลือกชุดเพลงที่คุณมีสำหรับแต่ละเหตุการณ์ เสียงที่ไม่มีจะเงียบ MVP ใช้มิกซ์ของผู้ชนะ การปิดจะปิดเพลง MVP ที่แชร์สำหรับคุณด้วย',
+    'music.mixSaved': 'บันทึกมิกซ์แล้ว การเปลี่ยนแปลงใช้ในแมตช์ถัดไป',
+    'music.mixClose': 'ปิดมิกเซอร์เพลง',
     'music.cue.bombplanted': 'วางระเบิดแล้ว',
     'music.cue.bombtenseccount': 'ระเบิด: 10 วินาที',
     'music.cue.chooseteam': 'เลือกทีม',
@@ -468,6 +512,17 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'ทีมอุปกรณ์'
   },
   id: {
+    'music.mixKeyboard':
+      'Gunakan tombol panah untuk memilih suara, Enter untuk menerapkan, dan Escape untuk menutup daftar.',
+    'music.chooseMvp': 'Gunakan {{name}} sebagai lagu MVP',
+    'music.clearMvp': 'Nonaktifkan lagu MVP',
+    'music.mixTitle': 'Mixer musik dalam game',
+    'music.mixOff': 'Nonaktif',
+    'music.mixSelected': 'Dipilih — {{name}}',
+    'music.mixHelp':
+      'Pilih kit milikmu untuk setiap peristiwa. Suara yang tidak ada tetap senyap. MVP memakai mix pemenang; Nonaktif juga membisukan lagu MVP bersama untukmu.',
+    'music.mixSaved': 'Mix musik disimpan. Perubahan berlaku pada pertandingan berikutnya.',
+    'music.mixClose': 'Tutup mixer musik',
     'music.cue.bombplanted': 'Bom ditanam',
     'music.cue.bombtenseccount': 'Bom: 10 detik',
     'music.cue.chooseteam': 'Pilih tim',
@@ -585,6 +640,17 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Tim perlengkapan'
   },
   pt: {
+    'music.mixKeyboard':
+      'Use as setas para navegar pelos sons, Enter para selecionar e Escape para fechar a lista.',
+    'music.chooseMvp': 'Usar {{name}} como hino MVP',
+    'music.clearMvp': 'Desativar hinos MVP',
+    'music.mixTitle': 'Mixagem de música no jogo',
+    'music.mixOff': 'Desativado',
+    'music.mixSelected': 'Selecionado — {{name}}',
+    'music.mixHelp':
+      'Escolha kits que possui para cada evento. Sons ausentes ficam em silêncio. O MVP usa a mixagem do vencedor; Desativado também silencia os hinos compartilhados para você.',
+    'music.mixSaved': 'Mixagem salva. Alterações valem na próxima partida.',
+    'music.mixClose': 'Fechar mixagem de música',
     'music.cue.bombplanted': 'Bomba plantada',
     'music.cue.bombtenseccount': 'Bomba: 10 segundos',
     'music.cue.chooseteam': 'Escolher equipe',
@@ -702,6 +768,16 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Equipe do equipamento'
   },
   ja: {
+    'music.mixKeyboard': '矢印キーで音声を移動し、Enterで選択、Escapeで一覧を閉じます。',
+    'music.chooseMvp': '{{name}}をMVPアンセムに設定',
+    'music.clearMvp': 'MVPアンセムをオフにする',
+    'music.mixTitle': 'ゲーム内音楽ミキサー',
+    'music.mixOff': 'オフ',
+    'music.mixSelected': '選択中 — {{name}}',
+    'music.mixHelp':
+      '各イベントに所有キットを選べます。音声がなければ無音です。MVPは受賞者のミックスを使用します。オフにすると共有アンセムも自分には聞こえません。',
+    'music.mixSaved': '音楽ミックスを保存しました。次の試合から適用されます。',
+    'music.mixClose': '音楽ミキサーを閉じる',
     'music.cue.bombplanted': '爆弾設置',
     'music.cue.bombtenseccount': '爆弾：残り10秒',
     'music.cue.chooseteam': 'チーム選択',
@@ -818,6 +894,17 @@ export const musicKitTranslations = {
     'music.loadoutTeam': '装備チーム'
   },
   hi: {
+    'music.mixKeyboard':
+      'ध्वनि देखने के लिए तीर कुंजियाँ, चुनने के लिए Enter और सूची बंद करने के लिए Escape दबाएँ।',
+    'music.chooseMvp': '{{name}} को MVP एंथम बनाएँ',
+    'music.clearMvp': 'MVP एंथम बंद करें',
+    'music.mixTitle': 'गेम में संगीत मिक्सर',
+    'music.mixOff': 'बंद',
+    'music.mixSelected': 'चयनित — {{name}}',
+    'music.mixHelp':
+      'हर इवेंट के लिए अपनी किट चुनें। ध्वनि न होने पर मौन रहेगा। MVP विजेता का मिक्स चलाता है; बंद करने पर साझा एंथम भी आपको नहीं सुनाई देगा।',
+    'music.mixSaved': 'संगीत मिक्स सहेजा गया। बदलाव अगले मैच में लागू होंगे।',
+    'music.mixClose': 'संगीत मिक्सर बंद करें',
     'music.cue.bombplanted': 'बम लगाया गया',
     'music.cue.bombtenseccount': 'बम: 10 सेकंड',
     'music.cue.chooseteam': 'टीम चुनें',
