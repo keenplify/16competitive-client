@@ -113,9 +113,6 @@ impl Bridge {
         {
             use std::os::windows::fs::OpenOptionsExt;
             options.custom_flags(0x00200000); // FILE_FLAG_OPEN_REPARSE_POINT
-            if remove_created {
-                options.access_mode(0xC0010000); // GENERIC_READ | GENERIC_WRITE | DELETE
-            }
         }
         #[cfg(unix)]
         {
@@ -178,21 +175,45 @@ impl Bridge {
                 #[cfg(windows)]
                 if self.1 {
                     use std::os::windows::io::AsRawHandle;
+                    use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
                     use windows_sys::Win32::Storage::FileSystem::{
-                        FileDispositionInfo, SetFileInformationByHandle, FILE_DISPOSITION_INFO,
+                        FileDispositionInfo, ReOpenFile, SetFileInformationByHandle,
+                        FILE_DISPOSITION_INFO, FILE_SHARE_DELETE, FILE_SHARE_READ,
+                        FILE_SHARE_WRITE,
                     };
+                    // GoldSrc's CRT readers do not share DELETE access. Acquire
+                    // it only after the game exits, reopening the held file
+                    // object rather than following its possibly replaced path.
+                    let deletion = unsafe {
+                        ReOpenFile(
+                            file.as_raw_handle(),
+                            0x00010000,
+                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                            0,
+                        )
+                    };
+                    if deletion == INVALID_HANDLE_VALUE {
+                        return Err(std::io::Error::last_os_error().to_string());
+                    }
                     let disposition = FILE_DISPOSITION_INFO { DeleteFile: true };
                     // Delete the held file, never whichever file now occupies its path.
                     if unsafe {
                         SetFileInformationByHandle(
-                            file.as_raw_handle(),
+                            deletion,
                             FileDispositionInfo,
                             &disposition as *const _ as *const _,
                             std::mem::size_of_val(&disposition) as u32,
                         )
                     } == 0
                     {
-                        return Err(std::io::Error::last_os_error().to_string());
+                        let error = std::io::Error::last_os_error();
+                        unsafe {
+                            CloseHandle(deletion);
+                        }
+                        return Err(error.to_string());
+                    }
+                    unsafe {
+                        CloseHandle(deletion);
                     }
                 } else {
                     file.set_len(0).map_err(|e| e.to_string())?;
@@ -296,6 +317,30 @@ mod tests {
         drop(bridge);
         assert_eq!(fs::read(f.script()).unwrap(), b"replacement");
         assert_eq!(fs::metadata(moved).unwrap().len(), 0);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn engine_can_read_bridge_without_sharing_delete_access() {
+        use std::os::windows::fs::OpenOptionsExt;
+        for initially_empty in [false, true] {
+            let f = Fixture::new();
+            if initially_empty {
+                fs::write(f.script(), b"").unwrap();
+            }
+            let bridge = Bridge::prepare(&f.0, true).unwrap();
+            let mut reader = OpenOptions::new()
+                .read(true)
+                .share_mode(3)
+                .open(f.script())
+                .unwrap();
+            let mut contents = String::new();
+            reader.read_to_string(&mut contents).unwrap();
+            assert!(contents.ends_with("\nstuffcmds\n"));
+            drop(reader);
+            drop(bridge);
+            assert_eq!(f.script().exists(), initially_empty);
+        }
     }
 
     #[cfg(windows)]
