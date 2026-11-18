@@ -36,7 +36,7 @@ async function harness(overrides = {}) {
   let persisted = { ...room },
     starts = 0
   const api = {
-    list: async () => [persisted],
+    list: async () => ({ rooms: [persisted], betting: null }),
     mine: async () => persisted,
     update: async (_id, settings) => {
       persisted = { ...persisted, ...settings }
@@ -196,7 +196,7 @@ test('list failure preserves a successful room restore and shows translated feed
 
 test('room restore failure retains membership while updating the browser list', async () => {
   const h = await harness({
-    list: async () => [{ ...room, name: 'Updated room' }],
+    list: async () => ({ rooms: [{ ...room, name: 'Updated room' }], betting: null }),
     mine: async () => {
       throw new Error('offline')
     }
@@ -220,7 +220,7 @@ test('polling does not overlap and successful recovery clears the refresh error'
   const refresh = h.state().refresh()
   await h.state().refresh()
   assert.equal(requests, 1)
-  pending.resolve([])
+  pending.resolve({ rooms: [], betting: null })
   await refresh
   assert.equal(h.state().status, 'ready')
   assert.equal(h.state().error, null)

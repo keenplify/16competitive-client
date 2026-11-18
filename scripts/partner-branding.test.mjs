@@ -14,7 +14,12 @@ const dependency =
   ).toString('base64')
 const source = compile(
   await readFile(new URL('../src/shared/partner-branding.ts', import.meta.url), 'utf8')
-).replace("'./partner-community'", JSON.stringify(dependency))
+)
+  .replace("'./partner-community'", JSON.stringify(dependency))
+  .replace(
+    "'./community-currency'",
+    JSON.stringify(new URL('../src/shared/community-currency.ts', import.meta.url).href)
+  )
 const { parsePartnerBranding } = await import(
   'data:text/javascript;base64,' + Buffer.from(source).toString('base64')
 )
@@ -64,8 +69,16 @@ test('audio settings validate percentages and revisions and support legacy respo
 })
 
 test('accepts a verified palette and same-origin media URL', () => {
-  assert.deepEqual(parsePartnerBranding({ branding }, origin), { branding })
-  assert.deepEqual(parsePartnerBranding({ branding: null }, origin), { branding: null })
+  assert.deepEqual(parsePartnerBranding({ branding }, origin), {
+    branding,
+    currency: null,
+    vip: null
+  })
+  assert.deepEqual(parsePartnerBranding({ branding: null }, origin), {
+    branding: null,
+    currency: null,
+    vip: null
+  })
 })
 
 test('rejects malformed colors and background relationships', () => {
@@ -154,7 +167,11 @@ test('setup dialog visibility defaults to false and rejects non-boolean flags', 
 test('login backgrounds have an independent kind and approved endpoint', () => {
   const loginBackgroundUrl = `${origin}/partners/branding/${partnerId}/login-asset?v=hash`
   const separate = { ...branding, loginBackgroundUrl, loginBackgroundKind: 'image' }
-  assert.deepEqual(parsePartnerBranding({ branding: separate }, origin), { branding: separate })
+  assert.deepEqual(parsePartnerBranding({ branding: separate }, origin), {
+    branding: separate,
+    currency: null,
+    vip: null
+  })
   for (const bad of [
     branding.backgroundUrl,
     'https://evil.example/login.png',

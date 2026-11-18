@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import vm from 'node:vm'
 import ts from 'typescript'
+import * as currency from '../src/shared/community-currency.ts'
 
 const modes = ['unrated', 'cs13_3v3', 'ffa', 'arena']
 const noop = () => undefined
@@ -93,10 +94,15 @@ async function formHarness(
                               match[1]
                             ])
                           )
+    const dependencies = specifier.endsWith('/partner-branding.store')
+      ? { usePartnerBrandingStore: (select) => select({ vip: null }) }
+      : specifier.endsWith('/community-currency')
+        ? currency
+        : exports
     return new vm.SyntheticModule(
-      Object.keys(exports),
+      Object.keys(dependencies),
       function () {
-        for (const [key, value] of Object.entries(exports)) this.setExport(key, value)
+        for (const [key, value] of Object.entries(dependencies)) this.setExport(key, value)
       },
       { context }
     )

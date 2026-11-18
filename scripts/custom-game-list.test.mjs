@@ -9,7 +9,7 @@ const node = (id, latencyMs, available = true) => ({ id, latencyMs, available })
 
 test('a missing saved server falls back to the nearest responding region', async () => {
   const calls = []
-  const rooms = [{ id: 'room' }]
+  const rooms = { rooms: [{ id: 'room' }], betting: null }
   const result = await loadCustomGameList(
     [node('far', 240), node('nearest', 30), node('unknown', null)],
     'retired-node-id',
@@ -30,10 +30,10 @@ test('a reachable selected server keeps its filter even when another region is n
       'selected',
       async ({ id }) => {
         calls.push(id)
-        return []
+        return { rooms: [], betting: null }
       }
     ),
-    []
+    { rooms: [], betting: null }
   )
   assert.deepEqual(calls, ['selected'])
 })
@@ -46,7 +46,7 @@ test('a stale discovery entry that fails HTTP falls back through measured region
     async ({ id }) => {
       calls.push(id)
       if (id !== 'far') throw new Error('offline')
-      return []
+      return { rooms: [], betting: null }
     }
   )
   assert.deepEqual(calls, ['saved', 'nearest', 'far'])
@@ -56,7 +56,7 @@ test('match capacity does not prevent browsing existing rooms', async () => {
   const calls = []
   await loadCustomGameList([node('full', 30, false)], 'full', async ({ id }) => {
     calls.push(id)
-    return []
+    return { rooms: [], betting: null }
   })
   assert.deepEqual(calls, ['full'])
 })
@@ -69,10 +69,10 @@ test('all-server browsing deduplicates rooms and tolerates partial outages', asy
       null,
       async ({ id }) => {
         if (id === 'offline') throw new Error('offline')
-        return [room]
+        return { rooms: [room], betting: null }
       }
     ),
-    [room]
+    { rooms: [room], betting: null }
   )
 })
 
@@ -111,6 +111,9 @@ test('partner web custom creation includes backend-enabled CS13 and excludes dis
   for (const enabled of [['unrated', 'ffa', 'cs13_3v3'], ['unrated']]) {
     const jsx = (type, props) => ({ type, props })
     const dependencies = {
+      '../partner-branding/partner-branding.store': {
+        usePartnerBrandingStore: (select) => select({ vip: null })
+      },
       '../settings/partner-game-preference.store': {
         usePartnerGamePreferenceStore: (select) => select({ game: null })
       },
