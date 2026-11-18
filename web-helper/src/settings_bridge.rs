@@ -273,6 +273,7 @@ pub fn save(value: &Preferences) -> Result<(), String> {
     deny_unknown_fields
 )]
 enum Request {
+    BridgeReady,
     PartnerSettings {
         api_origin: String,
         token: String,
@@ -751,7 +752,7 @@ fn apply_with_policy(
             unreachable!()
         }
         Request::ProbeNodes { .. } => unreachable!(),
-        Request::Logout { .. } | Request::PartnerSettings { .. } => unreachable!(),
+        Request::Logout { .. } | Request::PartnerSettings { .. } | Request::BridgeReady => unreachable!(),
     }
     if let Some(policy) = policy {
         policy.folders(&mut prefs);
@@ -966,10 +967,17 @@ fn handle(mut stream: TcpStream, port: u16, token: &str, origin: &str) -> bool {
                 }
             });
         }
-        Ok(request) => match apply(request, token) {
+        Ok(Request::BridgeReady) => respond(&mut stream, "200 OK", Some(origin), r#"{"bridgeReady":true}"#),
+        Ok(request) => {
+            // Keep preference read/modify/write operations serial. Readiness checks
+            // can still complete while a folder picker or catalog request is open.
+            static SETTINGS: std::sync::Mutex<()> = std::sync::Mutex::new(());
+            let _settings = SETTINGS.lock().unwrap_or_else(|e| e.into_inner());
+            match apply(request, token) {
             Ok(value) => respond(&mut stream, "200 OK", Some(origin), &value.to_string()),
             Err(error) => respond_settings_error(&mut stream, origin, &error),
-        },
+            }
+        }
         Err(_) => respond(&mut stream, "400 Bad Request", Some(origin), "{}"),
     }
     true
@@ -998,16 +1006,28 @@ pub fn serve(port: u16, token: &str, origin: &str) -> Result<(), String> {
     let _branding = crate::branding::Lease::start(origin);
     listener.set_nonblocking(true).map_err(|e| e.to_string())?;
     let mut last = Instant::now();
+    let mut connections: Vec<std::thread::JoinHandle<bool>> = Vec::new();
     while last.elapsed() < Duration::from_secs(30)
+        || !connections.is_empty()
         || crate::assets::busy()
         || crate::runtime::busy()
         || crate::partner::busy()
         || RUNTIME_CHECKS.load(std::sync::atomic::Ordering::Relaxed) > 0
     {
+        let mut i = 0;
+        while i < connections.len() {
+            if connections[i].is_finished() {
+                if connections.swap_remove(i).join().unwrap_or(false) { last = Instant::now(); }
+            } else {
+                i += 1;
+            }
+        }
         match listener.accept() {
             Ok((stream, _)) => {
-                if handle(stream, port, token, origin) {
-                    last = Instant::now();
+                if connections.len() < 16 {
+                    let token = token.to_owned();
+                    let origin = origin.to_owned();
+                    connections.push(std::thread::spawn(move || handle(stream, port, &token, &origin)));
                 }
             }
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -1039,7 +1059,7 @@ fn existing_bridge_matches(port: u16, token: &str, origin: &str) -> bool {
     };
     let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
     let _ = stream.set_write_timeout(Some(Duration::from_secs(2)));
-    let body = r#"{"action":"get"}"#;
+    let body = r#"{"action":"bridgeReady"}"#;
     if write!(stream, "POST /settings HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nOrigin: {origin}\r\nAuthorization: Bearer {token}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).is_err() {
         return false;
     }
@@ -1058,8 +1078,7 @@ fn existing_bridge_matches(port: u16, token: &str, origin: &str) -> bool {
             .lines()
             .any(|line| line == format!("Access-Control-Allow-Origin: {origin}"))
         && serde_json::from_str::<serde_json::Value>(body).is_ok_and(|value| {
-            value["platform"].as_str() == Some(if cfg!(windows) { "win32" } else { "linux" })
-                && (value["cs16FolderPath"].is_null() || value["cs16FolderPath"].is_string())
+            value["bridgeReady"] == true
         })
 }
 
@@ -1079,7 +1098,7 @@ mod tests {
             let request = std::str::from_utf8(&request[..count]).unwrap();
             assert!(request.contains(&format!("Authorization: Bearer {}", "a".repeat(64))));
             respond(&mut stream, "200 OK", Some("https://16competitive.papamo.dev"),
-                &serde_json::json!({"platform": if cfg!(windows) {"win32"} else {"linux"}, "cs16FolderPath":null}).to_string());
+                r#"{"bridgeReady":true}"#);
         });
         let start = Instant::now();
         wait_until_ready(port, &token, "https://16competitive.papamo.dev").unwrap();
