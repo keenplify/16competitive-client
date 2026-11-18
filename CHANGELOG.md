@@ -5036,3 +5036,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved validation of PH origins for browser and native helper launches.
 - Unified trusted PH origin handling across supported launch paths.
+
+## v2026.1118.4 — 2026-11-18
+
+### App Behavior
+
+- Duplicate app tabs now remain idle instead of running simultaneously.
+
+### Helper
+
+- Helper bridge readiness is no longer blocked by game setup.
