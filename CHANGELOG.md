@@ -5029,3 +5029,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added support for both Philippines HTTPS origins in the web helper and PWA.
 - Enabled the Philippines regional API for web clients.
+
+## v2026.1118.3 — 2026-11-18
+
+### Security & Reliability
+
+- Improved validation of PH origins for browser and native helper launches.
+- Unified trusted PH origin handling across supported launch paths.
