@@ -25,6 +25,9 @@ pub fn allowed_api_origin(value: &str, development: bool) -> Option<String> {
     if !url.username().is_empty() || url.password().is_some() || url.path() != "/" ||
         url.query().is_some() || url.fragment().is_some() { return None; }
     let host = url.host_str()?;
+    if url.scheme() == "https" && host == "16competitive.olaguergeyming.com" && matches!(url.port(), None | Some(2280)) {
+        return Some(url.origin().ascii_serialization());
+    }
     if development && url.scheme() == "http" && (host == "127.0.0.1" || host == "localhost") {
         return Some(url.origin().ascii_serialization());
     }
@@ -162,6 +165,20 @@ mod tests {
         assert!(connection.validate("duel").is_ok());
         connection.password = "short".into();
         assert!(connection.validate("duel").is_err());
+    }
+
+    #[test]
+    fn philippines_setup_and_join_require_the_exact_api_origin() {
+        let token = "a".repeat(43);
+        for origin in ["https://16competitive.olaguergeyming.com", "https://16competitive.olaguergeyming.com:2280"] {
+            let setup = format!("competitive16-helper://check-setup?api={origin}&handoff={token}&localPort=55001&localToken={}&webOrigin={origin}", "b".repeat(64));
+            assert_eq!(parse_check_link(&setup, false).unwrap().local_settings.unwrap().origin, origin);
+            let join = format!("competitive16-helper://join/12345678-1234-4234-8234-123456789abc?api={origin}&handoff={token}");
+            assert_eq!(parse_launch_link(&join, false).unwrap().api_origin, origin);
+        }
+        for bad in ["http://16competitive.olaguergeyming.com:2280", "https://16competitive.olaguergeyming.com:2281", "https://16competitive.olaguergeyming.com.evil.test:2280"] {
+            assert!(allowed_api_origin(bad, false).is_none());
+        }
     }
 
     #[test]
