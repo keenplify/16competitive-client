@@ -169,7 +169,7 @@ const seed = (scene: 'lobby' | 'create'): void => {
 }
 
 // ------- Preview shell ------------------------------------------------------
-function PreviewShell(): JSX.Element {
+export function PreviewShell(): JSX.Element {
   const [, force] = useState(0)
   const [scene, setScene] = useState<'lobby' | 'create'>('lobby')
   const rerender = (): void => force((value) => value + 1)
