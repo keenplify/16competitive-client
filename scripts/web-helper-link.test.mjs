@@ -42,6 +42,28 @@ test('desktop web links carry only bounded handoff, match and regional API field
   )
 })
 
+test('PH browser creates setup and match links on both HTTPS ports', () => {
+  for (const origin of [
+    'https://16competitive.olaguergeyming.com',
+    'https://16competitive.olaguergeyming.com:2280'
+  ]) {
+    const setup = {
+      apiOrigin: origin,
+      handoff,
+      localSettings: { origin, port: 55001, token: 'b'.repeat(64) }
+    }
+    const protocol = 'competitive16-helper'
+    assert.deepEqual(
+      parseWebHelperCheckLink(webHelperCheckUrl(setup, false, protocol), false, protocol),
+      setup
+    )
+    const join = { apiOrigin: origin, handoff, matchId }
+    assert.deepEqual(parseWebHelperLink(webHelperLaunchUrl(join)), join)
+    assert.equal(new URL(webHelperLaunchUrl(join, false, protocol)).searchParams.get('api'), origin)
+  }
+  assert.equal(allowedHelperApiOrigin('https://16competitive.olaguergeyming.com:2281'), null)
+})
+
 test('partner browser origin is accepted without trusting it as an API destination', () => {
   const origin = 'https://counterstrike.olaguergeyming.com'
   const localSettings = { origin, port: 55001, token: 'b'.repeat(64) }

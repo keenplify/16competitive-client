@@ -42,6 +42,7 @@ export function webHelperReleaseChanges(root, commit = 'HEAD') {
         'src/renderer/src/libs/web-hlmv/lib',
         'src/renderer/src/libs/web-hlmv/const',
         'src/shared/partner-web-origins.json',
+        'src/shared/ph-api-origins.json',
         'src/renderer/public/favicon-96x96.png',
         'src/shared/web-game-launch-pattern.json',
         'src/shared/discord-application.json',

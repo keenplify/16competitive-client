@@ -25,8 +25,10 @@ pub fn allowed_api_origin(value: &str, development: bool) -> Option<String> {
     if !url.username().is_empty() || url.password().is_some() || url.path() != "/" ||
         url.query().is_some() || url.fragment().is_some() { return None; }
     let host = url.host_str()?;
-    if url.scheme() == "https" && host == "16competitive.olaguergeyming.com" && matches!(url.port(), None | Some(2280)) {
-        return Some(url.origin().ascii_serialization());
+    let origin = url.origin().ascii_serialization();
+    let ph_origins = serde_json::from_str::<Vec<&str>>(include_str!("../../src/shared/ph-api-origins.json")).ok()?;
+    if url.scheme() == "https" && ph_origins.contains(&origin.as_str()) {
+        return Some(origin);
     }
     if development && url.scheme() == "http" && (host == "127.0.0.1" || host == "localhost") {
         return Some(url.origin().ascii_serialization());

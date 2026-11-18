@@ -1,4 +1,5 @@
 import partnerWebOrigins from './partner-web-origins.json' with { type: 'json' }
+import phApiOrigins from './ph-api-origins.json' with { type: 'json' }
 export const WEB_HELPER_PROTOCOL = 'competitive16-play'
 export const WEB_NATIVE_HELPER_PROTOCOL = 'competitive16-helper'
 
@@ -33,6 +34,7 @@ export function allowedHelperApiOrigin(value: string, development = false): stri
       ['localhost', '127.0.0.1'].includes(url.hostname)
     )
       return url.origin
+    if (phApiOrigins.includes(url.origin) && url.protocol === 'https:') return url.origin
     if (url.protocol !== 'https:' || url.port) return null
     if (
       url.hostname !== '16competitive.papamo.dev' &&
