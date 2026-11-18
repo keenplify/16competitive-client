@@ -5004,3 +5004,21 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Diagnostics
 
 - Fresh music and FPS diagnostics remain available when Windows file timestamps slightly lead the system clock.
+
+## v2026.1118.1 — 2026-11-18
+
+### Matchmaking
+
+- Added VIP access gating.
+- Added per-team betting for custom games.
+- Added PCash betting presets.
+
+### Customization
+
+- Added a music cue mixer for owned music kits.
+- Added MVP music loadout selection.
+- Added community-localized PCash displays.
+
+### Events
+
+- Added preview assets for the weekend sticker event.
