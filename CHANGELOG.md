@@ -5022,3 +5022,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Events
 
 - Added preview assets for the weekend sticker event.
+
+## v2026.1118.2 — 2026-11-18
+
+### Web access
+
+- Added support for both Philippines HTTPS origins in the web helper and PWA.
+- Enabled the Philippines regional API for web clients.
