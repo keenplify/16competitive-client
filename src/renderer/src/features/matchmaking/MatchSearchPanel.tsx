@@ -4,7 +4,7 @@ import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
 import { ButtonWithHelp } from '../../components/ui/ButtonWithHelp'
-import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
+import { getMatchmakingModeLabel, isCs16RankedMode } from '../../../../shared/matchmaking'
 import { serverClockNow } from '../../../../shared/server-clock'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useTranslation } from '../i18n/i18n'
@@ -67,7 +67,7 @@ export function MatchSearchPanel({
   // lone player does not wait on the queue screen for a second human.
   const suggestPlayWithBots = canPlayWithBots && elapsedSeconds >= 60
   const playWithBotsLabel =
-    suggestPlayWithBots && selectedMode === '5v5'
+    suggestPlayWithBots && isCs16RankedMode(selectedMode)
       ? t('rankedWarmup.botMmr')
       : t('activity.playBots')
   const selectedMapNames = selectedMapIds.map(

@@ -6,6 +6,7 @@ import { useEffect, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import {
   getMatchmakingModeLabel,
+  isCs16RankedMode,
   type MatchmakingMode,
   type QueuedPlayer
 } from '../../../../shared/matchmaking'
@@ -179,7 +180,7 @@ export function MatchFoundReadyCheck({
             </p>
           </div>
 
-          {match.mode === '5v5' && playingMr8 && (
+          {isCs16RankedMode(match.mode) && playingMr8 && (
             <aside className="match-ready-handoff mt-5 border border-amber-300/40 bg-amber-950/50 p-4 text-sm leading-relaxed text-amber-100">
               <h2 className="font-semibold">{t('match.ready.handoffTitle')}</h2>
               <p className="mt-1">{t('match.ready.handoffDetails')}</p>

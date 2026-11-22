@@ -6,6 +6,7 @@ import { useEffect, useState, type JSX } from 'react'
 import { MatchFoundReadyCheck } from './MatchFoundReadyCheck'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useQueueWarmupStore } from './queue-warmup.store'
+import { isRankedBotSessionMode } from '../../../../shared/matchmaking'
 import './match-ready.css'
 
 export function MatchReadyOverlay(): JSX.Element | null {
@@ -21,9 +22,11 @@ export function MatchReadyOverlay(): JSX.Element | null {
   const dismissedMatchId = useMatchmakingStore((state) => state.dismissedReadyMatchId)
   const dismissPreparing = useMatchmakingStore((state) => state.dismissPreparingReadyCheck)
   const { t } = useTranslation()
-  const playingMr8 = useQueueWarmupStore(
-    (state) => state.matchId !== null && state.mode === '5v5' && state.status === 'playing'
+  const playingWarmupMode = useQueueWarmupStore((state) =>
+    state.matchId !== null && state.status === 'playing' ? state.mode : null
   )
+  // The MR8 bot session is the warmup played in the ranked match's own mode.
+  const playingMr8 = isRankedBotSessionMode(playingWarmupMode, match?.mode)
   const [now, setNow] = useState(Date.now)
 
   useEffect(() => {

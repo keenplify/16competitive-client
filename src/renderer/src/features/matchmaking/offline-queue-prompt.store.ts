@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { useAuthStore } from '../auth/auth.store'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useMatchmakingStore } from './matchmaking.store'
+import { isCs16RankedMode } from '../../../../shared/matchmaking'
 
 interface OfflineQueuePromptState {
   open: boolean
@@ -18,7 +19,7 @@ interface OfflineQueuePromptState {
 
 const canJoin = (playerId: string): boolean =>
   useAuthStore.getState().session?.player.id === playerId &&
-  useMatchmakingStore.getState().selectedMode === '5v5' &&
+  isCs16RankedMode(useMatchmakingStore.getState().selectedMode) &&
   useMatchmakingStore.getState().queueStatus === 'idle'
 
 const joinQueue = (playerId: string): void => {
