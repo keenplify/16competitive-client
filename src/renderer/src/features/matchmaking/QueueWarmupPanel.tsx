@@ -5,7 +5,11 @@ import { Button } from '../../components/ui/Button'
 import { SelectField } from '../../components/ui/SelectField'
 import { FindMatchButton, PlayQueueActions } from './FindMatchButton'
 import { isWebRuntime } from '../../web-runtime'
-import { MATCHMAKING_MODES, getMatchmakingModeLabel } from '../../../../shared/matchmaking'
+import {
+  MATCHMAKING_MODES,
+  getMatchmakingModeLabel,
+  isCs16RankedMode
+} from '../../../../shared/matchmaking'
 import { useTranslation } from '../i18n/i18n'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useCustomGamesStore } from './custom-games.store'
@@ -25,14 +29,19 @@ export function QueueWarmupPanel({
   const { t } = useTranslation()
   const maps = useMatchmakingStore((state) => state.maps)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
+  const selectedMode = useMatchmakingStore((state) => state.selectedMode)
   const warmup = useQueueWarmupStore()
   const web = isWebRuntime()
+  // Warming up in the queued ranked mode is the MR8 bot session; the shared
+  // warmup list offers every other mode except 5v5.
+  const rankedMode = isCs16RankedMode(selectedMode) ? selectedMode : '5v5'
   const modes = MATCHMAKING_MODES.filter(
     (mode) =>
       mode !== '5v5' &&
+      mode !== rankedMode &&
       maps.some((map) => map.supportedModes.includes(mode) && (!web || map.webModes.includes(mode)))
   )
-  const mode = competitive ? '5v5' : modes.includes(warmup.mode) ? warmup.mode : modes[0]
+  const mode = competitive ? rankedMode : modes.includes(warmup.mode) ? warmup.mode : modes[0]
   const availableMaps = maps.filter(
     (map) => mode && map.supportedModes.includes(mode) && (!web || map.webModes.includes(mode))
   )
@@ -152,13 +161,13 @@ export function QueueWarmupButton({ className }: { className?: string }): JSX.El
   const busy = useQueueWarmupStore(
     (state) => state.status === 'starting' || state.status === 'leaving'
   )
-  if (queueStatus !== 'queued' || selectedMode !== '5v5') return null
+  if (queueStatus !== 'queued' || !isCs16RankedMode(selectedMode)) return null
   return (
     <Button
       variant="tertiary"
       className={twMerge('h-8 w-full text-xs', className)}
       onClick={() => {
-        if (!active && !busy) useQueueWarmupStore.getState().select('5v5', [])
+        if (!active && !busy) useQueueWarmupStore.getState().select(selectedMode, [])
         open()
         useCustomGamesStore.getState().setPlayView('matchmaking')
         useNavigationStore.getState().navigate('play')
