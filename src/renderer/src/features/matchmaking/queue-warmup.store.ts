@@ -1,5 +1,6 @@
 import { isWebRuntime } from '../../web-runtime'
 import { create } from 'zustand'
+import { isRankedBotSessionMode } from '../../../../shared/matchmaking'
 import type { MatchmakingEvent, MatchmakingMode } from '../../../../shared/matchmaking'
 import type { CompletedMatch } from './matchmaking.store'
 
@@ -22,7 +23,8 @@ type WarmupState = {
   join: () => Promise<void>
   launch: () => Promise<void>
   leave: () => Promise<void>
-  handleEvent: (event: MatchmakingEvent) => void
+  /** `queuedMode` is the player's ranked queue mode, used to recognise the MR8 bot session. */
+  handleEvent: (event: MatchmakingEvent, queuedMode?: MatchmakingMode | null) => void
 }
 
 export const useQueueWarmupStore = create<WarmupState>((set, get) => ({
@@ -126,14 +128,14 @@ export const useQueueWarmupStore = create<WarmupState>((set, get) => ({
       set({ status: 'error' })
     }
   },
-  handleEvent: (event) => {
+  handleEvent: (event, queuedMode) => {
     // Older servers may omit the warmup lane on admission errors.
     if (event.type === 'error' && event.code === 'WARMUP_FAILED') {
       set({ status: 'error' })
       return
     }
     if (event.whileQueued) {
-      if (event.type === 'match_finished' && event.mode === '5v5') {
+      if (event.type === 'match_finished' && isRankedBotSessionMode(event.mode, queuedMode)) {
         set({ completedMatch: event })
       }
       if (event.type === 'match_found' || event.type === 'match_roster')
@@ -165,7 +167,8 @@ export const useQueueWarmupStore = create<WarmupState>((set, get) => ({
         set({
           status: 'idle',
           matchId: null,
-          ...(event.type === 'match_finished' && (event.publicFfa || event.mode === '5v5')
+          ...(event.type === 'match_finished' &&
+          (event.publicFfa || isRankedBotSessionMode(event.mode, queuedMode))
             ? { completedMatch: event }
             : {})
         })

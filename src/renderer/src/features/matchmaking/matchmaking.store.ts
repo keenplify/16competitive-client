@@ -10,6 +10,8 @@ import { friendlyFireMessage } from './friendly-fire-message'
 import { ANTI_CHEAT_CANCELLED_MESSAGE } from '../../../../shared/anti-cheat'
 import {
   allowsManualMatchConnection,
+  isCs16RankedMode,
+  preferredCs16RankedMode,
   MatchmakingEvent,
   MatchmakingMap,
   MatchmakingMode,
@@ -277,7 +279,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
   const handleEvent = (event: MatchmakingEvent): void => {
     rendererMatchmakingDiagnostics.setOwner(useAuthStore.getState().session?.player.id ?? null)
     rendererMatchmakingDiagnostics.record('renderer_received', event)
-    useQueueWarmupStore.getState().handleEvent(event)
+    useQueueWarmupStore.getState().handleEvent(event, get().selectedMode)
     if (event.whileQueued) {
       if (event.type === 'error' && event.code === 'ADMIN_QUEUE_REMOVED') {
         toast.info(translate(useLanguageStore.getState().language, 'matchmaking.adminRemoved'), {
@@ -992,10 +994,16 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           isWebRuntime() && !useWebHelperPromptStore.getState().competitiveReady
             ? map.webModes
             : map.supportedModes
+        const availableModes = maps.flatMap(availableModesFor)
+        // A ranked selection that is no longer offered falls back to the other
+        // CS 1.6 ranked mode (5v5 preferred, else 3v3) before any other mode.
         const selectedMode =
-          get().queueStatus === 'idle' &&
-          !maps.some((map) => availableModesFor(map).includes(get().selectedMode))
-            ? (maps.flatMap(availableModesFor)[0] ?? get().selectedMode)
+          get().queueStatus === 'idle' && !availableModes.includes(get().selectedMode)
+            ? ((isCs16RankedMode(get().selectedMode)
+                ? preferredCs16RankedMode(availableModes)
+                : undefined) ??
+              availableModes[0] ??
+              get().selectedMode)
             : get().selectedMode
         const availableMaps = maps.filter((map) => availableModesFor(map).includes(selectedMode))
         const availableMapIds = new Set(availableMaps.map((map) => map.id))
@@ -1338,7 +1346,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     copyConnection: async () => {
       const matchMode = get().match?.mode
       const rankedWebEnabled =
-        matchMode === '5v5' && get().maps.some((map) => map.webModes.includes('5v5'))
+        isCs16RankedMode(matchMode) && get().maps.some((map) => map.webModes.includes(matchMode))
       if (!allowsManualMatchConnection(matchMode) && !rankedWebEnabled) {
         set({ error: 'Ranked matches require the desktop launcher.', copyConnectionStatus: 'idle' })
         return

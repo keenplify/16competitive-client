@@ -546,6 +546,7 @@ async function warmupStoreHarness() {
     exports,
     require: (name) => {
       if (name === '../../web-runtime') return { isWebRuntime: () => false }
+      if (name === '../../../../shared/matchmaking') return { isRankedBotSessionMode }
       assert.equal(name, 'zustand')
       return { create }
     },
@@ -809,6 +810,28 @@ test('MR8 map selection uses the warmup API and preserves the original ranked ma
   } finally {
     h.connection.shutdown()
   }
+})
+
+test('3v3 MR8 results show only when the player is queued for ranked 3v3', async () => {
+  const result = {
+    type: 'match_finished',
+    whileQueued: true,
+    matchId: 'warmup',
+    mode: '3v3',
+    teamAScore: 9,
+    teamBScore: 4,
+    winner: 1,
+    players: []
+  }
+  const ranked = await warmupStoreHarness()
+  ranked.store.getState().handleEvent({ ...found, mode: '3v3' }, '3v3')
+  ranked.store.getState().handleEvent(result, '3v3')
+  assert.equal(ranked.store.getState().completedMatch, result)
+  const shared = await warmupStoreHarness()
+  shared.store.getState().handleEvent({ ...found, mode: '3v3' }, '5v5')
+  shared.store.getState().handleEvent(result, '5v5')
+  assert.equal(shared.store.getState().completedMatch, null)
+  assert.equal(shared.store.getState().status, 'idle')
 })
 
 test('MR8 results survive cleanup, authentication replay and queue updates until dismissed', async () => {

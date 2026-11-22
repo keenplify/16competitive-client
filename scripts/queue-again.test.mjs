@@ -10,6 +10,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { create } from 'zustand'
 import { readyResponseFromServer } from '../src/shared/matchmaking-ready-response.ts'
+import * as sharedMatchmaking from '../src/shared/matchmaking.ts'
 
 test('Play with Bots waits for an invitation, ignores repeated clicks, and shows server refusals', async () => {
   const h = await harness()
@@ -151,7 +152,10 @@ async function harness({
     zustand: { create },
     './friendly-fire-message': { friendlyFireMessage: (text) => text },
     '../../../../shared/anti-cheat': { ANTI_CHEAT_CANCELLED_MESSAGE: 'cancelled' },
-    '../../../../shared/matchmaking': { allowsManualMatchConnection: () => false },
+    '../../../../shared/matchmaking': {
+      ...sharedMatchmaking,
+      allowsManualMatchConnection: () => false
+    },
     '../../../../shared/matchmaking-ready-time': { readyCheckRemainingMs: () => 0 },
     '../../../../shared/matchmaking-ready-response': { readyResponseFromServer },
     '../../../../shared/server-clock': {

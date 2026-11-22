@@ -11,6 +11,7 @@ import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { create } from 'zustand'
+import * as sharedMatchmaking from '../src/shared/matchmaking.ts'
 
 const found = {
   type: 'match_found',
@@ -223,7 +224,10 @@ async function harness() {
     'react-toastify': { toast: { loading: () => 1, update: () => undefined } },
     zustand: { create },
     '../../../../shared/anti-cheat': { ANTI_CHEAT_CANCELLED_MESSAGE: 'fixture' },
-    '../../../../shared/matchmaking': { allowsManualMatchConnection: () => false },
+    '../../../../shared/matchmaking': {
+      ...sharedMatchmaking,
+      allowsManualMatchConnection: () => false
+    },
     '../auth/auth.store': { useAuthStore: { getState: () => ({}), subscribe: () => () => {} } },
     '../../web-runtime': { isWebRuntime: () => false }
   }
