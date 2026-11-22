@@ -68,8 +68,39 @@ export const MATCHMAKING_MODE_LABELS: Record<MatchmakingMode, string> = {
   arena: 'Arena'
 }
 
+export const RANKED_MATCHMAKING_MODES = ['5v5', '3v3', 'cs13_3v3', 'cs13_1v1'] as const
+
 export const isRankedMatchmakingMode = (mode: string): boolean =>
-  ['5v5', '3v3', 'cs13_3v3', 'cs13_1v1'].includes(mode)
+  (RANKED_MATCHMAKING_MODES as readonly string[]).includes(mode)
+
+/**
+ * CS 1.6 ranked (MMR-eligible) queue modes, in preference order. Mirrors the
+ * backend's `isCs16RankedMode()` (src/matchmaking/ranked-mode.ts): the ranked
+ * list minus the CS 1.3 modes, which keep their own adapter-specific flow.
+ * These share the ranked lifecycle: Competitive tab, MR8 bot session while
+ * queued, in-game ready check, offline-queue prompt and full results view.
+ */
+export type Cs16RankedMode = Exclude<(typeof RANKED_MATCHMAKING_MODES)[number], `cs13_${string}`>
+export const CS16_RANKED_MODES = RANKED_MATCHMAKING_MODES.filter(
+  (mode): mode is Cs16RankedMode => !mode.startsWith('cs13_')
+)
+
+export const isCs16RankedMode = (mode: unknown): mode is Cs16RankedMode =>
+  typeof mode === 'string' && (CS16_RANKED_MODES as readonly string[]).includes(mode)
+
+/** The CS 1.6 ranked mode to offer first: 5v5 when available, otherwise 3v3. */
+export const preferredCs16RankedMode = (available: readonly string[]): Cs16RankedMode | undefined =>
+  CS16_RANKED_MODES.find((mode) => available.includes(mode))
+
+/**
+ * Whether a play-while-queued warmup in `warmupMode` is the private MR8 ranked
+ * bot session. Matches the backend rule: warming up in the queued CS 1.6
+ * ranked mode is a bot session, any other mode (for example 3v3 while queued
+ * for 5v5) is an ordinary shared warmup. When the queued mode is unknown, a CS
+ * 1.6 ranked warmup is assumed to be the bot session, as 5v5 always was.
+ */
+export const isRankedBotSessionMode = (warmupMode: unknown, queuedMode?: unknown): boolean =>
+  isCs16RankedMode(warmupMode) && (queuedMode == null || queuedMode === warmupMode)
 
 export const getMatchmakingModeLabel = (mode: string): string =>
   isMatchmakingMode(mode) ? MATCHMAKING_MODE_LABELS[mode] : mode
