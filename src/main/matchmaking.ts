@@ -10,7 +10,9 @@ import { serverClockNow, syncServerClock } from '../shared/server-clock'
 import type { WebContents } from 'electron'
 import { app, BrowserWindow, clipboard } from 'electron'
 import {
+  isCs16RankedMode,
   isMatchmakingMode,
+  isRankedBotSessionMode,
   MATCHMAKING_CHANNELS,
   manualConnectionCommand
 } from '../shared/matchmaking'
@@ -576,14 +578,16 @@ class MatchmakingConnection {
       !mapIds.every((id) => typeof id === 'string' && /^[a-z0-9_]{1,64}$/.test(id))
     )
       throw new Error('Invalid warmup selection')
-    if (this.desiredMode !== '5v5' || this.warmupMatchId) throw new Error('Warmup is unavailable')
+    if (!isCs16RankedMode(this.desiredMode) || this.warmupMatchId)
+      throw new Error('Warmup is unavailable')
     return this.warmupCleanup.then(() => {
-      if (this.desiredMode !== '5v5' || this.warmupMatchId) throw new Error('Warmup is unavailable')
+      if (!isCs16RankedMode(this.desiredMode) || this.warmupMatchId)
+        throw new Error('Warmup is unavailable')
       this.warmupSuppressed = false
       // MR8 keeps its server reservation after process-exit cleanup. An explicit
       // retry may receive that same match ID rather than a newly created one.
       if (
-        mode === '5v5' &&
+        isRankedBotSessionMode(mode, this.desiredMode) &&
         this.resumableWarmupMatchId &&
         !this.finishedMatchIds.has(this.resumableWarmupMatchId)
       )
@@ -638,7 +642,8 @@ class MatchmakingConnection {
         return
       }
       this.warmupMatchIds.add(message.matchId)
-      if (message.mode === '5v5') this.resumableWarmupMatchId = message.matchId
+      if (isRankedBotSessionMode(message.mode, this.desiredMode))
+        this.resumableWarmupMatchId = message.matchId
       this.warmupMatchId = message.matchId
       this.warmupSocket = socket
       this.warmupApiUrl = message.hostApiUrl
@@ -759,7 +764,10 @@ class MatchmakingConnection {
         void this.leaveWarmup('server-ended').catch((error) =>
           console.warn('[QueueWarmup] cleanup failed', error)
         )
-      if (message.type === 'match_finished' && (message.publicFfa || message.mode === '5v5'))
+      if (
+        message.type === 'match_finished' &&
+        (message.publicFfa || isRankedBotSessionMode(message.mode, this.desiredMode))
+      )
         this.focusLauncher(true, MATCH_END_ATTENTION_DURATION_MS)
     }
     this.notify({ ...message, whileQueued: true })
@@ -869,7 +877,7 @@ class MatchmakingConnection {
 
   isBusyForPartnerServer(): boolean {
     if (
-      this.desiredMode === '5v5' &&
+      isCs16RankedMode(this.desiredMode) &&
       !this.warmupMatchId &&
       !this.manualConnectionMatchId &&
       !this.recoveryStatusPending
@@ -1041,7 +1049,7 @@ class MatchmakingConnection {
   }
 
   async playWithBots(): Promise<void> {
-    if (this.desiredMode === '5v5') {
+    if (isCs16RankedMode(this.desiredMode)) {
       await this.warmupCleanup
       if (this.warmupMatchId) throw new Error('Warmup is unavailable')
       this.warmupSuppressed = false

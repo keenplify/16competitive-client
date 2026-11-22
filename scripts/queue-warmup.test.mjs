@@ -4,6 +4,7 @@ import { test } from 'node:test'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import { MatchmakingDiagnostics } from '../src/shared/matchmaking-diagnostics.ts'
+import { isCs16RankedMode, isRankedBotSessionMode } from '../src/shared/matchmaking.ts'
 import ts from 'typescript'
 import * as React from 'react'
 import * as jsx from 'react/jsx-runtime'
@@ -97,6 +98,8 @@ async function harness({
     matchmakingDiagnostics: new MatchmakingDiagnostics(),
     getSessionUsername: () => 'fixture-player',
     isMatchmakingMode: (value) => ['5v5', 'arena', 'ffa', '3v3'].includes(value),
+    isCs16RankedMode,
+    isRankedBotSessionMode,
     MATCHMAKING_CHANNELS: { event: 'event' },
     API_BASE_URL: 'https://fallback.invalid',
     LOCAL_DEVELOPMENT: false,
@@ -261,7 +264,10 @@ for (const freshProcess of [true, false]) {
       await new Promise((resolve) => setImmediate(resolve))
       assert.equal(h.calls.filter(([type]) => type === 'launch').length, 0)
       assert.equal(h.connection.lastConnection.matchId, connection.matchId)
-      assert.equal(h.events.some((event) => event.type === 'game_process_exited'), freshProcess)
+      assert.equal(
+        h.events.some((event) => event.type === 'game_process_exited'),
+        freshProcess
+      )
       await h.connection.reconnectGame()
       assert.equal(h.calls.filter(([type]) => type === 'launch').length, 1)
     } finally {
@@ -493,9 +499,34 @@ test('rejects invalid map IDs and warmups outside ranked queue at IPC boundary',
   const h = await harness()
   assert.throws(() => h.connection.joinWarmup('5v5', '../map'))
   assert.throws(() => h.connection.joinWarmup('arena', '../map'))
-  h.connection.desiredMode = '3v3'
+  h.connection.desiredMode = 'unrated'
   assert.throws(() => h.connection.joinWarmup('arena', 'fy_pool_day'))
   assert.equal(h.sent.length, 0)
+})
+
+test('a ranked 3v3 queuer can start the MR8 3v3 bot session', async () => {
+  const h = await harness()
+  h.connection.desiredMode = '3v3'
+  await h.connection.joinWarmup('3v3', ['de_dust2'])
+  assert.deepEqual(h.sent.at(-1), { type: 'join_warmup', mode: '3v3', mapIds: ['de_dust2'] })
+  h.connection.handleWarmup({ ...found, mode: '3v3' }, h.socket)
+  assert.equal(h.connection.resumableWarmupMatchId, found.matchId)
+  h.connection.handleWarmup(
+    { type: 'match_finished', matchId: found.matchId, mode: '3v3' },
+    h.socket
+  )
+  assert.equal(h.connection.resumableWarmupMatchId, null)
+  assert.equal(h.connection.desiredMode, '3v3')
+})
+
+test('a shared 3v3 warmup while queued for 5v5 is not the MR8 bot session', async () => {
+  const h = await harness()
+  await h.connection.joinWarmup('3v3', ['de_dust2'])
+  assert.deepEqual(h.sent.at(-1), { type: 'join_warmup', mode: '3v3', mapIds: ['de_dust2'] })
+  h.connection.handleWarmup({ ...found, mode: '3v3' }, h.socket)
+  assert.equal(h.connection.resumableWarmupMatchId, null)
+  h.connection.handleWarmup({ ...found, mode: '5v5', matchId: 'mr8' }, h.socket)
+  assert.equal(h.connection.resumableWarmupMatchId, 'mr8')
 })
 
 async function warmupStoreHarness() {
