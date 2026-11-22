@@ -20,7 +20,9 @@ import { toast } from 'react-toastify'
 import { twMerge } from 'tailwind-merge'
 import {
   allowsManualMatchConnection,
-  getMatchmakingModeLabel
+  CS16_RANKED_MODES,
+  getMatchmakingModeLabel,
+  isCs16RankedMode
 } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { TabList } from '../../components/ui/TabList'
@@ -238,7 +240,7 @@ export function PlayPage({
     const currentMode = useMatchmakingStore.getState().selectedMode
     const game = usePartnerGamePreferenceStore.getState().game
     if (game && gameForMode(currentMode) !== game) return
-    if (currentMode === '5v5' && player) void requestOfflineQueue(player.id)
+    if (isCs16RankedMode(currentMode) && player) void requestOfflineQueue(player.id)
     else void joinQueue()
   }
 
@@ -311,17 +313,24 @@ export function PlayPage({
       : hideDesktopOnlyFeatures
         ? []
         : orderedQueueModes.filter((mode) => mode !== 'cs13_3v3')
+  // The Competitive tab holds every CS 1.6 ranked mode the server offers,
+  // 5v5 first; it opens on 5v5 when enabled, otherwise 3v3.
+  const competitiveModes = CS16_RANKED_MODES.filter((mode) => visibleQueueModes.includes(mode))
+  const competitiveMode =
+    isCs16RankedMode(selectedMode) && competitiveModes.includes(selectedMode)
+      ? selectedMode
+      : (competitiveModes[0] ?? '5v5')
   const showCompetitive =
     mapsStatus === 'ready'
-      ? visibleQueueModes.includes('5v5')
-      : preferredGame !== 'cs13' && (!hideDesktopOnlyFeatures || visibleQueueModes.includes('5v5'))
+      ? competitiveModes.length > 0
+      : preferredGame !== 'cs13' && (!hideDesktopOnlyFeatures || competitiveModes.length > 0)
   const copyWaitSeconds = matchReadyAt
     ? Math.max(0, Math.ceil((matchReadyAt + 10_000 - clockNow) / 1_000))
     : 10
   const retryWindowOpen = copyWaitSeconds === 0
   const manualConnectionAllowed =
     allowsManualMatchConnection(match?.mode) ||
-    (match?.mode === '5v5' && maps.some((map) => map.webModes.includes('5v5')))
+    (isCs16RankedMode(match?.mode) && maps.some((map) => map.webModes.includes(match.mode)))
   const availableMaps = maps.filter(
     (map) =>
       map.supportedModes.includes(selectedMode) &&
@@ -331,7 +340,7 @@ export function PlayPage({
   const visiblePlayView = playView === 'partner' && !hasCommunityServers ? 'matchmaking' : playView
   const noncompetitiveModes = visibleQueueModes.filter(
     (mode) =>
-      mode !== '5v5' &&
+      !isCs16RankedMode(mode) &&
       mode !== 'arena' &&
       mode !== 'cs13_3v3' &&
       maps.some(
@@ -351,7 +360,7 @@ export function PlayPage({
   const activePlayTab =
     visiblePlayView !== 'matchmaking'
       ? visiblePlayView
-      : selectedMode !== '5v5'
+      : !isCs16RankedMode(selectedMode)
         ? selectedMode === 'arena'
           ? 'arena'
           : selectedMode === 'cs13_3v3' || selectedMode === 'cs13_1v1'
@@ -691,8 +700,14 @@ export function PlayPage({
                   {
                     value: 'competitive',
                     label: t('play.competitive'),
-                    helpText: t('matchmaking.modeHelp5v5'),
-                    disabled: (isSearching && selectedMode !== '5v5') || (!isSearching && !isLeader)
+                    helpText: t(
+                      competitiveMode === '3v3'
+                        ? 'matchmaking.modeHelp3v3'
+                        : 'matchmaking.modeHelp5v5'
+                    ),
+                    disabled:
+                      (isSearching && !isCs16RankedMode(selectedMode)) ||
+                      (!isSearching && !isLeader)
                   }
                 ]
               : []),
@@ -726,11 +741,14 @@ export function PlayPage({
             }
             setPlayView('matchmaking')
             if (!isSearching) {
-              if (view === 'competitive') selectMode('5v5')
+              if (view === 'competitive') selectMode(competitiveMode)
               else if (view === 'arena') selectMode('arena')
               else if (view === 'cs13') {
                 if (cs13Modes[0]) selectMode(cs13Modes[0])
-              } else if ((selectedMode === '5v5' || selectedMode === 'arena') && ffaTabModes[0])
+              } else if (
+                (isCs16RankedMode(selectedMode) || selectedMode === 'arena') &&
+                ffaTabModes[0]
+              )
                 selectMode(ffaTabModes.includes('ffa') ? 'ffa' : ffaTabModes[0])
             }
           }}
@@ -739,12 +757,32 @@ export function PlayPage({
         {visiblePlayView === 'partner' ? (
           <PartnerServersPanel
             disabled={
-              queueStatus !== 'idle' && !(queueStatus === 'queued' && selectedMode === '5v5')
+              queueStatus !== 'idle' &&
+              !(queueStatus === 'queued' && isCs16RankedMode(selectedMode))
             }
           />
         ) : visiblePlayView === 'matchmaking' ? (
           <div className="flex min-h-0 flex-1 flex-col gap-3 pt-3">
-            {selectedMode !== '5v5' &&
+            {isCs16RankedMode(selectedMode) && competitiveModes.length > 1 && (
+              <div className="w-64 max-w-full shrink-0">
+                <SelectField
+                  label={t('warmup.mode')}
+                  value={selectedMode}
+                  disabled={isSearching || !isLeader}
+                  onChange={(event) => {
+                    const mode = competitiveModes.find((mode) => mode === event.target.value)
+                    if (mode) selectMode(mode)
+                  }}
+                >
+                  {competitiveModes.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {getMatchmakingModeLabel(mode)}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
+            )}
+            {!isCs16RankedMode(selectedMode) &&
               selectedMode !== 'arena' &&
               selectedMode !== 'cs13_3v3' &&
               selectedMode !== 'cs13_1v1' &&
