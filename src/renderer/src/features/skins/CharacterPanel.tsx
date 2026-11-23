@@ -3,6 +3,7 @@ import { type JSX, type ReactNode } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { CharacterTeam, Skin } from '../../../../shared/skins'
 import { isWebRuntime } from '../../web-runtime'
+import { HelpTooltip } from '../../components/ui/HelpTooltip'
 import { PartyModelScene } from '../party/PartyModelScene'
 import { useLobbyLoadoutStore } from '../party/lobby-loadout.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
@@ -106,22 +107,31 @@ function CharacterPanelContent({
             {skin?.name ?? model.toUpperCase()}
           </span>
         </button>
-        <button
-          type="button"
-          disabled={disabled || partyPending || partySelected}
-          onClick={onShowInParty}
-          aria-label={t(partySelected ? 'character.partySelected' : 'character.party')}
-          title={t(partySelected ? 'character.partySelected' : 'character.party')}
-          className="absolute right-2 bottom-2 flex size-8 items-center justify-center border border-white/20 bg-black/60 text-white hover:bg-white/20 disabled:opacity-60"
-        >
-          {partyPending ? (
-            <LoaderCircle className="size-4 animate-spin" />
-          ) : partySelected ? (
-            <Check className="size-4" />
-          ) : (
-            <Users className="size-4" />
+        <HelpTooltip
+          className="absolute right-2 bottom-2"
+          placement="top"
+          text={t('character.ffaHelp')}
+          renderTrigger={(trigger) => (
+            <button
+              type="button"
+              {...trigger}
+              aria-disabled={disabled || partyPending || partySelected}
+              onClick={() => {
+                if (!disabled && !partyPending && !partySelected) onShowInParty()
+              }}
+              aria-label={t(partySelected ? 'character.partySelected' : 'character.party')}
+              className="flex size-8 items-center justify-center border border-white/20 bg-black/60 text-white hover:bg-white/20 aria-disabled:opacity-60"
+            >
+              {partyPending ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : partySelected ? (
+                <Check className="size-4" />
+              ) : (
+                <Users className="size-4" />
+              )}
+            </button>
           )}
-        </button>
+        />
       </div>
       {footer && <div className="px-2 pb-3 pt-1">{footer}</div>}
     </div>

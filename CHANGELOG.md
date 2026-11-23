@@ -5060,3 +5060,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Scoreboard
 
 - VIP membership badges are now shown in the launcher scoreboard.
+
+## v2026.1123.2 — 2026-11-23
+
+### Winter FFA
+
+- The public Play tab now shows Winter FFA. Custom FFA rooms show the seasonal name on Office, Glacier, and Iceworld 2K.
+- The character loadout tooltip explains how your lobby character carries over to FFA and Winter FFA.
