@@ -5046,3 +5046,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Helper
 
 - Helper bridge readiness is no longer blocked by game setup.
+
+## v2026.1123.11 — 2026-11-23
+
+### Matchmaking
+
+- Competitive Play now reflects the enabled CS 1.6 ranked modes.
+- Ranked 3v3 now follows the same matchmaking and warmup flow as ranked 5v5.
+- Competitive queue warmup is available for queued CS 1.6 ranked modes.
+- Ranked modes now support MR8 bot sessions and queue behavior.
+- Ranked 3v3 now shows the MR8 handoff, bot-MMR label, and offline-queue prompt.
+
+### Scoreboard
+
+- VIP membership badges are now shown in the launcher scoreboard.
