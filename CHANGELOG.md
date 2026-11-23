@@ -5071,3 +5071,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.1124.1 — 2026-11-24
 
 - Select Winter FFA directly in Create room or Room settings to choose Office, Glacier, or Iceworld 2K.
+
+## v2026.1124.2 — 2026-11-24
+
+- The launcher now repairs a NextClient installation automatically when its original client DLL is restored. Files that already match the approved release are reused.

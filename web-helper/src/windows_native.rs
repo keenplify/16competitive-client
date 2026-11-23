@@ -517,11 +517,15 @@ impl WindowsInstall {
             let module = read_limited(&bundle.module, 32 * 1024 * 1024)?;
             // Validate both before changing either. Interrupted updates can retry
             // the same approved bundle, but never overwrite an unknown player file.
-            verify_owned(
-                &root.join("cstrike/cl_dlls/client_mini.dll"),
-                &journal.custom_mini_sha256,
-                &mini,
-            )?;
+            let mini_path = root.join("cstrike/cl_dlls/client_mini.dll");
+            let current_mini = digest(&read_limited(&mini_path, 128 * 1024 * 1024)?);
+            // NextClient can restore its own DLL. Its backup was verified above.
+            let expected_mini = if current_mini == journal.original_mini_sha256 {
+                &journal.original_mini_sha256
+            } else {
+                &journal.custom_mini_sha256
+            };
+            verify_owned(&mini_path, expected_mini, &mini)?;
             verify_owned(
                 &root.join("papamo_cosmetic_module.dll"),
                 &journal.cosmetic_sha256,
@@ -530,11 +534,7 @@ impl WindowsInstall {
             if !journal.owns_cosmetic && digest(&module) != journal.cosmetic_sha256 {
                 return Err("An existing unowned cosmetic module needs manual updating".into());
             }
-            replace_owned(
-                &root.join("cstrike/cl_dlls/client_mini.dll"),
-                &journal.custom_mini_sha256,
-                &mini,
-            )?;
+            replace_owned(&mini_path, expected_mini, &mini)?;
             if journal.owns_cosmetic {
                 replace_owned(
                     &root.join("papamo_cosmetic_module.dll"),
@@ -559,6 +559,46 @@ mod tests {
     use super::*;
     use crate::native_session::NativeSession;
     use competitive16_web_helper::Connection;
+
+    #[test]
+    fn nextclient_refresh_recovers_only_a_verified_original() {
+        let root = std::env::temp_dir().join(format!("16c-mini-repair-{}", uuid::Uuid::new_v4()));
+        let managed = root.join("16competitive");
+        let mini = root.join("cstrike/cl_dlls/client_mini.dll");
+        fs::create_dir_all(mini.parent().unwrap()).unwrap();
+        fs::create_dir_all(&managed).unwrap();
+        let backup = managed.join("nextclient-client-mini.original.dll");
+        let cosmetic = root.join("papamo_cosmetic_module.dll");
+        let record = NextJournal {
+            original_mini_sha256: digest(b"original"),
+            custom_mini_sha256: digest(b"prior"),
+            cosmetic_sha256: digest(b"prior cosmetic"),
+            owns_cosmetic: true,
+        };
+        fs::write(managed.join("nextclient-install.json"), serde_json::to_vec(&record).unwrap()).unwrap();
+        let bundle = NativeBundle {
+            inspector: root.join("inspector"),
+            module: root.join("new-cosmetic"),
+            next_client: Some(root.join("new-mini")),
+        };
+        fs::write(bundle.next_client.as_ref().unwrap(), b"approved").unwrap();
+        fs::write(&bundle.module, b"approved cosmetic").unwrap();
+        fs::write(&cosmetic, b"prior cosmetic").unwrap();
+        fs::write(&mini, b"original").unwrap();
+        fs::write(&backup, b"changed backup").unwrap();
+        assert!(WindowsInstall::refresh_installed(&root, &bundle).is_err());
+        fs::write(&backup, b"original").unwrap();
+        fs::write(&mini, b"third party").unwrap();
+        assert!(WindowsInstall::refresh_installed(&root, &bundle).is_err());
+        assert_eq!(fs::read(&mini).unwrap(), b"third party");
+        assert_eq!(fs::read(&cosmetic).unwrap(), b"prior cosmetic");
+        fs::write(&mini, b"original").unwrap();
+        assert!(WindowsInstall::refresh_installed(&root, &bundle).unwrap());
+        assert_eq!(fs::read(&mini).unwrap(), b"approved");
+        assert_eq!(fs::read(&backup).unwrap(), b"original");
+        assert!(WindowsInstall::refresh_installed(&root, &bundle).unwrap());
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn legacy_launch_contract_requires_every_callback() {

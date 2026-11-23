@@ -75,9 +75,14 @@ pub fn verify_owned(path: &Path, expected: &str, desired: &[u8]) -> Result<(), S
 }
 
 pub fn replace_metadata(path: &Path, bytes: &[u8]) -> Result<(), String> {
-    use std::io::Write;
     regular(path)?;
-    let before = hash(&fs::read(path).map_err(repair_io_error)?);
+    let before = fs::read(path).map_err(repair_io_error)?;
+    if before == bytes { return Ok(()); }
+    replace_checked(path, &hash(&before), bytes)
+}
+
+fn replace_checked(path: &Path, before: &str, bytes: &[u8]) -> Result<(), String> {
+    use std::io::Write;
     let pending = path.with_extension(format!("{}.tmp", uuid::Uuid::new_v4()));
     let result = (|| {
         let mut file = fs::OpenOptions::new()
@@ -92,7 +97,7 @@ pub fn replace_metadata(path: &Path, bytes: &[u8]) -> Result<(), String> {
         if hash(&fs::read(path).map_err(repair_io_error)?) != before {
             return Err("Native file changed during update".into());
         }
-        clear_verified_readonly(path, &before)?;
+        clear_verified_readonly(path, before)?;
         fs::rename(&pending, path).map_err(repair_io_error)
     })();
     if result.is_err() {
@@ -102,8 +107,13 @@ pub fn replace_metadata(path: &Path, bytes: &[u8]) -> Result<(), String> {
 }
 
 pub fn replace_owned(path: &Path, expected: &str, bytes: &[u8]) -> Result<(), String> {
-    verify_owned(path, expected, bytes)?;
-    replace_metadata(path, bytes)
+    regular(path)?;
+    let current = fs::read(path).map_err(repair_io_error)?;
+    if current == bytes { return Ok(()); }
+    if hash(&current) != expected {
+        return Err("Native file changed outside the launcher; preserve it for inspection".into());
+    }
+    replace_checked(path, expected, bytes)
 }
 
 #[cfg(test)]
