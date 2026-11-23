@@ -97,6 +97,7 @@ type Snapshot = {
     deaths: number
     ping: number
     alive: boolean
+    memberVip?: boolean
     bot: boolean
   }[]
 } | null
@@ -1000,6 +1001,10 @@ export class ScoreboardOverlaySession {
         throw new Error('Scoreboard revision mismatch')
       const snapshot = this.parseSnapshot(feed)
       if (!snapshot) throw new Error('Invalid scoreboard snapshot')
+      const membershipSlots = new Set((response.headers.get('x-scoreboard-members') ?? '').split(','))
+      for (const player of snapshot.players) {
+        player.memberVip = !player.bot && membershipSlots.has(String(player.id))
+      }
       const botTags = response.headers.get('x-scoreboard-bot-tags')
       if (botTags !== null && botTags !== '0' && botTags !== '1')
         throw new Error('Invalid scoreboard bot-tag policy')

@@ -37,6 +37,7 @@ type Player = {
   money: number | null
   primaryWeapon: number | null
   hasBomb?: boolean
+  memberVip?: boolean
   vip?: boolean
 }
 type Snapshot = {
@@ -295,7 +296,7 @@ function PlayerRow({
       <span className="rank">{String(rank).padStart(2, '0')}</span>
       <span className="player-name" title={player.name}>
         {player.name}
-        {player.vip && <strong className="vip-marker">VIP</strong>}
+        {(player.vip || player.memberVip) && <strong className="vip-marker">VIP</strong>}
         {canSeeBomb && player.hasBomb && (
           <C4Icon className="bomb-carrier-icon" label="Bomb carrier" />
         )}
@@ -445,7 +446,7 @@ function Scoreboard() {
       {spectators.length > 0 && (
         <div className="spectator-footer">
           <strong>SPECTATORS · {spectators.length}</strong>
-          <span>{spectators.map((player) => player.name).join(' · ')}</span>
+          <span>{spectators.map((player) => player.memberVip ? `${player.name} VIP` : player.name).join(' · ')}</span>
         </div>
       )}
     </main>
