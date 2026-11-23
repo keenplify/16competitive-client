@@ -5079,3 +5079,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.1124.3 — 2026-11-24
 
 - Recognize compatible NextClient DLL updates during match preparation and preserve both the previous and updated originals for maintenance.
+
+## v2026.1124.4 — 2026-11-24
+
+- Show the animated winter snowball charge meter on supported clients during Winter FFA.
