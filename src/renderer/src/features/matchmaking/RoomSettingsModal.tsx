@@ -1,3 +1,4 @@
+import { customModeLabel } from './winter-ffa-label'
 import { usePartnerGamePreferenceStore } from '../settings/partner-game-preference.store'
 import { gameForMode } from '../../../../shared/game-version'
 import { HelpTooltip } from '../../components/ui/HelpTooltip'
@@ -185,12 +186,12 @@ export function RoomSettingsModal({
               >
                 {!modeAvailable && (
                   <option value={mode} disabled>
-                    {t(`customRoom.mode.${mode}`)}
+                    {t(customModeLabel(mode, selectedMapId))}
                   </option>
                 )}
                 {modes.map((candidate) => (
                   <option key={candidate} value={candidate}>
-                    {t(`customRoom.mode.${candidate}`)}
+                    {t(customModeLabel(candidate, selectedMapId))}
                   </option>
                 ))}
               </select>
