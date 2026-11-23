@@ -5047,7 +5047,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Helper bridge readiness is no longer blocked by game setup.
 
-## v2026.1123.11 — 2026-11-23
+## v2026.1123.1 — 2026-11-23
 
 ### Matchmaking
 
