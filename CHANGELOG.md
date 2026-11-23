@@ -5087,3 +5087,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.1124.5 — 2026-11-24
 
 - Place Legacy 1.3 just before Custom Game and keep it first for Olaguer Geyming.
+
+## v2026.1124.6 — 2026-11-24
+
+- Confirm Winter FFA bot requests when the server accepts them into the queue.

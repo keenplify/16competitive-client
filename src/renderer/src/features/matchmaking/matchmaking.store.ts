@@ -1127,10 +1127,10 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       const language = useLanguageStore.getState().language
       const feedback = toast.loading(translate(language, 'activity.playBotsPending'))
       try {
-        await requestBotMatch(window.api.matchmaking)
+        const result = await requestBotMatch(window.api.matchmaking)
         set({ error: null })
         toast.update(feedback, {
-          render: translate(language, 'activity.playBotsRequested'),
+          render: translate(language, result === 'queued' ? 'activity.winterBotsQueued' : 'activity.playBotsRequested'),
           type: 'success',
           isLoading: false,
           autoClose: 3000

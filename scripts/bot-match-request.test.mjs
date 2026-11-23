@@ -20,6 +20,16 @@ function fixture(send = async () => {}) {
   }
 }
 
+test('Winter FFA confirms the queued request before a match is invited', async () => {
+  const h = fixture()
+  const pending = requestBotMatch(h.api)
+  h.emit({ type: 'queue_status', mode: 'ffa', botFillOptIn: false })
+  assert.equal(h.listeners.size, 1)
+  h.emit({ type: 'queue_status', mode: 'ffa', botFillOptIn: true })
+  assert.equal(await pending, 'queued')
+  assert.equal(h.listeners.size, 0)
+})
+
 test('socket send and bot opt-in do not claim success before Match Found', async () => {
   const h = fixture()
   let complete = false
