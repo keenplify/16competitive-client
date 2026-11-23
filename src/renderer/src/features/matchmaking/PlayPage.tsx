@@ -367,6 +367,14 @@ export function PlayPage({
             ? 'cs13'
             : 'noncompetitive'
         : 'competitive'
+  const legacyFirst = branding?.partnerId === '583704ab-6fc5-4b58-8fc2-d91cf1d7c051'
+  const legacyTabs = cs13Modes.length
+    ? [{
+        value: 'cs13',
+        label: getMatchmakingModeLabel('cs13_3v3'),
+        disabled: (isSearching && activePlayTab !== 'cs13') || (!isSearching && !isLeader)
+      }]
+    : []
   const matchMapPreview = match
     ? maps.find((map) => map.id === match.mapId)?.previewUrl || localMapPreviews[match.mapId]
     : null
@@ -676,22 +684,13 @@ export function PlayPage({
           ariaLabel={communityText('playModes')}
           value={activePlayTab}
           items={[
+            ...(legacyFirst ? legacyTabs : []),
             ...(hasCommunityServers
               ? [
                   {
                     value: 'partner' as const,
                     label: communityText('servers'),
                     disabled: isSearching
-                  }
-                ]
-              : []),
-            ...(cs13Modes.length > 0
-              ? [
-                  {
-                    value: 'cs13',
-                    label: getMatchmakingModeLabel('cs13_3v3'),
-                    disabled:
-                      (isSearching && activePlayTab !== 'cs13') || (!isSearching && !isLeader)
                   }
                 ]
               : []),
@@ -732,6 +731,7 @@ export function PlayPage({
                   }
                 ]
               : []),
+            ...(!legacyFirst ? legacyTabs : []),
             { value: 'custom', label: t('play.customGame') }
           ]}
           onChange={(view) => {
