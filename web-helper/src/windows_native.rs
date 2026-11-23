@@ -55,6 +55,24 @@ pub(crate) fn digest(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
 
+// Only consulted after the updater has replaced our host with different bytes.
+// A web deployment can approve another upstream distribution for the same host.
+fn compatible_nextclient_update(host: &str, original: &str) -> Result<bool, String> {
+    let response = ureq::AgentBuilder::new()
+        .redirects(0)
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .get("https://16competitive.papamo.dev/pwa/nextclient-compatibility.json")
+        .call()
+        .map_err(|_| "NextClient compatibility catalog unavailable")?;
+    let mut bytes = Vec::new();
+    response.into_reader().take(32769).read_to_end(&mut bytes).map_err(|e| e.to_string())?;
+    if bytes.len() > 32768 { return Err("Invalid NextClient compatibility catalog".into()); }
+    let catalog: std::collections::HashMap<String, Vec<String>> =
+        serde_json::from_slice(&bytes).map_err(|_| "Invalid NextClient compatibility catalog")?;
+    Ok(catalog.get(host).is_some_and(|versions| versions.iter().any(|v| v == original)))
+}
+
 pub(crate) fn prepare_permissions(root: &Path) -> Result<(), String> {
     let mut directories = vec![root.to_path_buf(), root.join("cstrike"), root.join("cstrike/cl_dlls")];
     if root.join("16competitive").exists() { directories.push(root.join("16competitive")); }
@@ -471,6 +489,11 @@ impl WindowsInstall {
     /// Reuse or update only our hash-journaled DLLs. Originals remain available
     /// for explicit maintenance; ending a session never restores an installation.
     fn refresh_installed(root: &Path, bundle: &NativeBundle) -> Result<bool, String> {
+        Self::refresh_with_catalog(root, bundle, compatible_nextclient_update)
+    }
+
+    fn refresh_with_catalog(root: &Path, bundle: &NativeBundle,
+        compatible: impl FnOnce(&str, &str) -> Result<bool, String>) -> Result<bool, String> {
         let managed = root.join("16competitive");
         let proxy = managed.join("cosmetic-install.json");
         let next = managed.join("nextclient-install.json");
@@ -500,13 +523,9 @@ impl WindowsInstall {
         if next.exists() {
             let mut journal: NextJournal = serde_json::from_slice(&read_limited(&next, 1024)?)
                 .map_err(|_| "Invalid NextClient installation journal")?;
-            if digest(&read_limited(
-                &managed.join("nextclient-client-mini.original.dll"),
-                128 * 1024 * 1024,
-            )?) != journal.original_mini_sha256
-            {
-                return Err("Original NextClient backup changed".into());
-            }
+            let backup_path = managed.join("nextclient-client-mini.original.dll");
+            let backup = read_limited(&backup_path, 128 * 1024 * 1024)?;
+            let backup_hash = digest(&backup);
             let mini = read_limited(
                 bundle
                     .next_client
@@ -518,14 +537,9 @@ impl WindowsInstall {
             // Validate both before changing either. Interrupted updates can retry
             // the same approved bundle, but never overwrite an unknown player file.
             let mini_path = root.join("cstrike/cl_dlls/client_mini.dll");
-            let current_mini = digest(&read_limited(&mini_path, 128 * 1024 * 1024)?);
-            // NextClient can restore its own DLL. Its backup was verified above.
-            let expected_mini = if current_mini == journal.original_mini_sha256 {
-                &journal.original_mini_sha256
-            } else {
-                &journal.custom_mini_sha256
-            };
-            verify_owned(&mini_path, expected_mini, &mini)?;
+            let current = read_limited(&mini_path, 128 * 1024 * 1024)?;
+            let current_mini = digest(&current);
+            let host_hash = digest(&mini);
             verify_owned(
                 &root.join("papamo_cosmetic_module.dll"),
                 &journal.cosmetic_sha256,
@@ -534,7 +548,29 @@ impl WindowsInstall {
             if !journal.owns_cosmetic && digest(&module) != journal.cosmetic_sha256 {
                 return Err("An existing unowned cosmetic module needs manual updating".into());
             }
-            replace_owned(&mini_path, expected_mini, &mini)?;
+            if current_mini != journal.original_mini_sha256 && current_mini != journal.custom_mini_sha256 && current_mini != host_hash {
+                if !compatible(&host_hash, &current_mini)? {
+                    return Err("NextClient update has no approved compatible host".into());
+                }
+                let previous = &journal.original_mini_sha256;
+                if previous.len() != 64 || !previous.bytes().all(|b| b.is_ascii_hexdigit()) {
+                    return Err("Invalid NextClient original digest".into());
+                }
+                let archive = managed.join(format!("nextclient-original-{previous}.dll"));
+                if backup_hash == *previous && !archive.try_exists().map_err(|e| e.to_string())? {
+                    write_new(&archive, &backup)?;
+                }
+                if (backup_hash != *previous && backup_hash != current_mini)
+                    || digest(&read_limited(&archive, 128 * 1024 * 1024)?) != *previous {
+                    return Err("Original NextClient backup changed".into());
+                }
+                replace_owned(&backup_path, previous, &current)?;
+                journal.original_mini_sha256 = current_mini.clone();
+                replace_metadata(&next, &serde_json::to_vec(&journal).map_err(|e| e.to_string())?)?;
+            } else if backup_hash != journal.original_mini_sha256 {
+                return Err("Original NextClient backup changed".into());
+            }
+            replace_owned(&mini_path, &current_mini, &mini)?;
             if journal.owns_cosmetic {
                 replace_owned(
                     &root.join("papamo_cosmetic_module.dll"),
@@ -589,7 +625,7 @@ mod tests {
         assert!(WindowsInstall::refresh_installed(&root, &bundle).is_err());
         fs::write(&backup, b"original").unwrap();
         fs::write(&mini, b"third party").unwrap();
-        assert!(WindowsInstall::refresh_installed(&root, &bundle).is_err());
+        assert!(WindowsInstall::refresh_with_catalog(&root, &bundle, |_, _| Ok(false)).is_err());
         assert_eq!(fs::read(&mini).unwrap(), b"third party");
         assert_eq!(fs::read(&cosmetic).unwrap(), b"prior cosmetic");
         fs::write(&mini, b"original").unwrap();
@@ -597,6 +633,23 @@ mod tests {
         assert_eq!(fs::read(&mini).unwrap(), b"approved");
         assert_eq!(fs::read(&backup).unwrap(), b"original");
         assert!(WindowsInstall::refresh_installed(&root, &bundle).unwrap());
+        let update = |host: &str, stock: &str| Ok(host == digest(b"approved") && stock == digest(b"vendor update"));
+        fs::write(&mini, b"vendor update").unwrap();
+        assert!(WindowsInstall::refresh_with_catalog(&root, &bundle, update).unwrap());
+        assert_eq!(fs::read(&backup).unwrap(), b"vendor update");
+        let archive = managed.join(format!("nextclient-original-{}.dll", digest(b"original")));
+        assert_eq!(fs::read(&archive).unwrap(), b"original");
+        assert_eq!(fs::read(&mini).unwrap(), b"approved");
+        // Simulate interruption after updating the canonical backup, before journal commit.
+        fs::write(managed.join("nextclient-install.json"), serde_json::to_vec(&record).unwrap()).unwrap();
+        fs::write(&mini, b"vendor update").unwrap();
+        fs::write(&archive, b"corrupt").unwrap();
+        assert!(WindowsInstall::refresh_with_catalog(&root, &bundle, update).is_err());
+        assert_eq!(fs::read(&mini).unwrap(), b"vendor update");
+        fs::write(&archive, b"original").unwrap();
+        assert!(WindowsInstall::refresh_with_catalog(&root, &bundle, update).unwrap());
+        let saved: NextJournal = serde_json::from_slice(&fs::read(managed.join("nextclient-install.json")).unwrap()).unwrap();
+        assert_eq!(saved.original_mini_sha256, digest(b"vendor update"));
         fs::remove_dir_all(root).unwrap();
     }
 

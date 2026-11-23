@@ -5075,3 +5075,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.1124.2 — 2026-11-24
 
 - The launcher now repairs a NextClient installation automatically when its original client DLL is restored. Files that already match the approved release are reused.
+
+## v2026.1124.3 — 2026-11-24
+
+- Recognize compatible NextClient DLL updates during match preparation and preserve both the previous and updated originals for maintenance.
