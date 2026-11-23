@@ -5067,3 +5067,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - The public Play tab now shows Winter FFA. Custom FFA rooms show the seasonal name on Office, Glacier, and Iceworld 2K.
 - The character loadout tooltip explains how your lobby character carries over to FFA and Winter FFA.
+
+## v2026.1124.1 — 2026-11-24
+
+- Select Winter FFA directly in Create room or Room settings to choose Office, Glacier, or Iceworld 2K.

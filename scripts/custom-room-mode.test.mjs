@@ -6,6 +6,8 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import * as currency from '../src/shared/community-currency.ts'
 
+import * as roomModeHelpers from '../src/renderer/src/features/matchmaking/winter-ffa-label.ts'
+
 const modes = ['unrated', 'cs13_3v3', 'ffa', 'arena']
 const noop = () => undefined
 const maps = [
@@ -98,7 +100,9 @@ async function formHarness(
       ? { usePartnerBrandingStore: (select) => select({ vip: null }) }
       : specifier.endsWith('/community-currency')
         ? currency
-        : exports
+        : specifier.endsWith('/winter-ffa-label')
+          ? roomModeHelpers
+          : exports
     return new vm.SyntheticModule(
       Object.keys(dependencies),
       function () {
@@ -184,3 +188,32 @@ test('existing actual CS 1.3 room remains saveable while its catalog is unavaila
   assert.equal(h.submitted[0].mapId, 'de_mirage')
   assert.equal(h.submitted[0].legacyMode, false)
 })
+
+for (const component of ['CreateCustomGameModal', 'RoomSettingsModal']) {
+  test(component + ' offers Winter FFA from Unranked and submits a winter map', async () => {
+    const h = await formHarness(component, 'unrated')
+    const catalog = [
+      ...maps,
+      { id: 'de_dust2', customModes: ['ffa'] },
+      { id: 'cs_office', customModes: ['ffa'] }
+    ]
+    const tree = h.render(catalog)
+    assert.ok(
+      find(
+        tree,
+        (n) =>
+          n.type === 'option' && n.props.value === 'winter_ffa' && n.props.children === 'warmup.tab'
+      )
+    )
+    assert.ok(find(tree, (n) => n.type === 'option' && n.props.value === 'ffa'))
+    find(tree, (n) => n.type === 'select').props.onChange({ target: { value: 'winter_ffa' } })
+    const selected = h.render(catalog)
+    assert.equal(
+      find(selected, (n) => n.type === 'option' && n.props.value === 'de_dust2'),
+      null
+    )
+    find(selected, (n) => n.type === 'form').props.onSubmit({ preventDefault: noop })
+    assert.equal(h.submitted[0].mode, 'ffa')
+    assert.equal(h.submitted[0].mapId, 'cs_office')
+  })
+}

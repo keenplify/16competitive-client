@@ -1,15 +1,17 @@
-import { customModeLabel } from './winter-ffa-label'
+import {
+  backendMode,
+  customModeLabel,
+  roomModeChoices,
+  supportsChoice,
+  type RoomModeChoice
+} from './winter-ffa-label'
 import { usePartnerGamePreferenceStore } from '../settings/partner-game-preference.store'
 import { gameForMode } from '../../../../shared/game-version'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useState, type FormEvent, type JSX } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { ModalHeader } from '../../components/ui/ModalHeader'
-import {
-  CUSTOM_GAME_MODES,
-  isCustomGameMode,
-  type CustomGameMode
-} from '../../../../shared/custom-games'
+import { CUSTOM_GAME_MODES, isCustomGameMode } from '../../../../shared/custom-games'
 import type { MatchmakingMap } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { FindMatchButton } from './FindMatchButton'
@@ -42,7 +44,7 @@ export function CreateCustomGameModal({
   const createRoom = useCustomGamesStore((state) => state.createRoom)
   const error = useCustomGamesStore((state) => state.error)
   const [name, setName] = useState(t('customGames.defaultName'))
-  const [mode, setMode] = useState<CustomGameMode>(() => {
+  const [mode, setMode] = useState<RoomModeChoice>(() => {
     const selected = useMatchmakingStore.getState().selectedMode
     if (preferredGame && gameForMode(selected) !== preferredGame)
       return (
@@ -56,17 +58,24 @@ export function CreateCustomGameModal({
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const availableModes = CUSTOM_GAME_MODES.filter(
-    (candidate) =>
-      enabledModes.includes(candidate) &&
-      (!preferredGame || gameForMode(candidate) === preferredGame)
+  const availableModes = roomModeChoices(
+    CUSTOM_GAME_MODES.filter(
+      (candidate) =>
+        enabledModes.includes(candidate) &&
+        (!preferredGame || gameForMode(candidate) === preferredGame)
+    ),
+    maps
   )
   // Catalog refreshes must never substitute a different mode for the draft.
-  const selectedMode = mode
+  const selectedMode = backendMode(mode)
   const modeAvailable = availableModes.includes(mode)
-  const supportedMaps = maps.filter(({ customModes }) => customModes.includes(selectedMode))
+  const supportedMaps = maps.filter((map) => supportsChoice(map, mode))
   const selectedMapId =
-    mapId ?? supportedMaps.find((map) => map.id === 'de_dust2')?.id ?? supportedMaps[0]?.id ?? ''
+    mapId ??
+    supportedMaps.find((map) => map.id === (mode === 'winter_ffa' ? 'cs_office' : 'de_dust2'))
+      ?.id ??
+    supportedMaps[0]?.id ??
+    ''
   const mapAvailable = supportedMaps.some((map) => map.id === selectedMapId)
 
   const submit = (event: FormEvent<HTMLFormElement>): void => {
@@ -141,21 +150,21 @@ export function CreateCustomGameModal({
               {t('customRoom.mode')}
               <select
                 className={fieldClass}
-                value={selectedMode}
+                value={mode}
                 disabled={submitting || availableModes.length === 0}
                 onChange={(event) => {
-                  setMode(event.target.value as CustomGameMode)
+                  setMode(event.target.value as RoomModeChoice)
                   setMapId(null)
                 }}
               >
                 {!modeAvailable && (
                   <option value={mode} disabled>
-                    {t(customModeLabel(mode, selectedMapId))}
+                    {t(customModeLabel(mode))}
                   </option>
                 )}
                 {availableModes.map((availableMode) => (
                   <option key={availableMode} value={availableMode}>
-                    {t(customModeLabel(availableMode, selectedMapId))}
+                    {t(customModeLabel(availableMode))}
                   </option>
                 ))}
               </select>

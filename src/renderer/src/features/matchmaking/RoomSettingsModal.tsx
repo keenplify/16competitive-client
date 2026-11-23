@@ -1,4 +1,11 @@
-import { customModeLabel } from './winter-ffa-label'
+import {
+  backendMode,
+  customModeLabel,
+  roomModeChoices,
+  supportsChoice,
+  roomModeChoice,
+  type RoomModeChoice
+} from './winter-ffa-label'
 import { usePartnerGamePreferenceStore } from '../settings/partner-game-preference.store'
 import { gameForMode } from '../../../../shared/game-version'
 import { HelpTooltip } from '../../components/ui/HelpTooltip'
@@ -9,7 +16,6 @@ import { LoaderCircle } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import {
   CUSTOM_GAME_MODES,
-  type CustomGameMode,
   type CustomGameRoom
 } from '../../../../shared/custom-games'
 import {
@@ -65,7 +71,7 @@ export function RoomSettingsModal({
   const betting = useCustomGamesStore((state) => state.betting)
   const enabledModes = useMatchmakingStore((state) => state.customModes)
   const [name, setName] = useState(room.name)
-  const [mode, setMode] = useState<CustomGameMode>(room.mode)
+  const [mode, setMode] = useState<RoomModeChoice>(roomModeChoice(room.mode, room.mapId))
   const [mapId, setMapId] = useState(room.mapId)
   const [password, setPassword] = useState('')
   const [legacyMode, setLegacyMode] = useState(room.legacyMode === true)
@@ -77,14 +83,19 @@ export function RoomSettingsModal({
   const [betMinor, setBetMinor] = useState<number | null>(room.betTeamStakeLocalMinor ?? null)
   const [customBetText, setCustomBetText] = useState('')
   const nameRef = useRef<HTMLInputElement>(null)
-  const modes = CUSTOM_GAME_MODES.filter(
-    (candidate) =>
-      candidate === room.mode ||
-      (enabledModes.includes(candidate) &&
-        (!preferredGame || gameForMode(candidate) === preferredGame) &&
-        (!hideDesktopOnlyFeatures || candidate !== 'cs13_3v3'))
+  const modes = roomModeChoices(
+    CUSTOM_GAME_MODES.filter(
+      (candidate) =>
+        candidate === room.mode ||
+        (enabledModes.includes(candidate) &&
+          (!preferredGame || gameForMode(candidate) === preferredGame) &&
+          (!hideDesktopOnlyFeatures || candidate !== 'cs13_3v3'))
+    ),
+    maps
   )
-  const selectedMode = mode
+  const selectedMode = backendMode(mode)
+  const currentChoice = roomModeChoice(room.mode, room.mapId)
+  if (!modes.includes(currentChoice)) modes.push(currentChoice)
   const modeAvailable = modes.includes(mode)
   const allowsLegacyMode = mode !== 'cs13_3v3' && mode !== 'cs13_1v1'
   const allowsMoney = selectedMode !== 'ffa' && selectedMode !== 'arena'
@@ -104,13 +115,11 @@ export function RoomSettingsModal({
       Number(startingMoney) >= 800 &&
       Number(startingMoney) <= 16000)
   const availableMaps = maps.filter(
-    (map) =>
-      map.customModes.includes(selectedMode) ||
-      (selectedMode === room.mode && map.id === room.mapId)
+    (map) => supportsChoice(map, mode) || (mode === currentChoice && map.id === room.mapId)
   )
   const selectedMapId = mapId
   const mapAvailable =
-    (mode === room.mode && selectedMapId === room.mapId) ||
+    (mode === currentChoice && selectedMapId === room.mapId) ||
     availableMaps.some((map) => map.id === selectedMapId)
 
   return (
@@ -175,23 +184,23 @@ export function RoomSettingsModal({
             <Field label={t('customRoom.mode')}>
               <select
                 className={fieldClass}
-                value={selectedMode}
+                value={mode}
                 disabled={saving}
                 onChange={(event) => {
-                  const nextMode = event.target.value as CustomGameMode
+                  const nextMode = event.target.value as RoomModeChoice
                   setMode(nextMode)
-                  if (!maps.some((map) => map.id === mapId && map.customModes.includes(nextMode)))
-                    setMapId(maps.find((map) => map.customModes.includes(nextMode))?.id ?? '')
+                  if (!maps.some((map) => map.id === mapId && supportsChoice(map, nextMode)))
+                    setMapId(maps.find((map) => supportsChoice(map, nextMode))?.id ?? '')
                 }}
               >
                 {!modeAvailable && (
                   <option value={mode} disabled>
-                    {t(customModeLabel(mode, selectedMapId))}
+                    {t(customModeLabel(mode))}
                   </option>
                 )}
                 {modes.map((candidate) => (
                   <option key={candidate} value={candidate}>
-                    {t(customModeLabel(candidate, selectedMapId))}
+                    {t(customModeLabel(candidate))}
                   </option>
                 ))}
               </select>
