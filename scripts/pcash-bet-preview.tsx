@@ -43,7 +43,7 @@ window.api = {
           stake: input.stake,
           status: 'PENDING',
           payout: null,
-          expectedPayout: input.stake * 2 - Math.floor(input.stake * 0.2) * 2
+          expectedPayout: input.stake * 2 - Math.floor(input.stake * 0.1) * 2
         }
       }
     }
@@ -97,7 +97,7 @@ createRoot(document.getElementById('root')!).render(
             ...sample,
             open: false,
             balance: 1260,
-            bet: { stake: 100, status: 'WON', payout: 160, expectedPayout: 160 }
+            bet: { stake: 100, status: 'WON', payout: 180, expectedPayout: 180 }
           }}
         />
       </section>

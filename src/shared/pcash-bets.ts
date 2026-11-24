@@ -50,8 +50,8 @@ export function validateBetInput(value: unknown): asserts value is PCashBetInput
 export function betPayout({ stake, partnerBps, platformBps }: PCashBetInput): number {
   return (
     stake * 2 -
-    Math.floor((stake * 2 * partnerBps) / 10000) -
-    Math.floor((stake * 2 * platformBps) / 10000)
+    Math.floor((stake * partnerBps) / 10000) -
+    Math.floor((stake * platformBps) / 10000)
   )
 }
 export function parsePCashBetSnapshot(value: unknown, matchId: string): PCashBetSnapshot {

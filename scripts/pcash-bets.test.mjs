@@ -20,7 +20,7 @@ const snapshot = {
 const placed = {
   ...snapshot,
   balance: 850,
-  bet: { stake: 150, status: 'PENDING', payout: null, expectedPayout: 240 }
+  bet: { stake: 150, status: 'PENDING', payout: null, expectedPayout: 270 }
 }
 async function fixture(api) {
   const auth = create(() => ({ session: { player: { id: 'account-a' } } }))
@@ -156,7 +156,7 @@ test('an account switch clears selection and ignores late wallet or stake data',
   assert.equal(notices.size, 0)
 })
 test('server response validation rejects a fake win amount, wrong match and illegal stakes', () => {
-  assert.equal(betPayout({ stake: 100, partnerBps: 1000, platformBps: 1000 }), 160)
+  assert.equal(betPayout({ stake: 100, partnerBps: 1000, platformBps: 1000 }), 180)
   // Community currency presets allow arbitrary integer stakes at the IPC layer;
   // the backend remains the authority on which amounts a community may place.
   validateBetInput({ stake: 100, partnerBps: 1000, platformBps: 1000 })
@@ -168,9 +168,9 @@ test('server response validation rejects a fake win amount, wrong match and ille
     parsePCashBetSnapshot({ ...placed, bet: { ...placed.bet, status: 'WON', payout: 100000 } }, id)
   )
   assert.equal(
-    parsePCashBetSnapshot({ ...placed, bet: { ...placed.bet, status: 'WON', payout: 240 } }, id).bet
+    parsePCashBetSnapshot({ ...placed, bet: { ...placed.bet, status: 'WON', payout: 270 } }, id).bet
       .payout,
-    240
+    270
   )
 })
 test('community currency payloads are parsed, defaults stay null, and garbage is rejected', () => {

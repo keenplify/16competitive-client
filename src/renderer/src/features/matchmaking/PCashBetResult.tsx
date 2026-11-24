@@ -23,8 +23,8 @@ export function PCashBetResultView({
   const communityCurrency = useCommunityCurrency()
   const bet = snapshot?.bet
   const money = (amount: number): string => formatPCashText(amount, communityCurrency, language)
-  const partner = bet ? Math.floor((bet.stake * 2 * snapshot!.partnerBps) / 10000) : 0
-  const platform = bet ? Math.floor((bet.stake * 2 * snapshot!.platformBps) / 10000) : 0
+  const partner = bet ? Math.floor((bet.stake * snapshot!.partnerBps) / 10000) : 0
+  const platform = bet ? Math.floor((bet.stake * snapshot!.platformBps) / 10000) : 0
   return (
     <section
       aria-label={t('bet.resultTitle')}
