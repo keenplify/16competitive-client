@@ -24,7 +24,8 @@ export function MatchmakingMapPool({
   ].filter((group) => group.maps.length > 0)
   const regularCount = groups.find((group) => !group.review)?.maps.length ?? 0
   const reviewCount = groups.find((group) => group.review)?.maps.length ?? 0
-  const reviewColumns = regularCount === 0 ? reviewCount : Math.ceil(reviewCount / 3)
+  const singleRow = maps.length <= 4
+  const reviewColumns = singleRow || regularCount === 0 ? reviewCount : Math.ceil(reviewCount / 3)
   return (
     <section
       className={twMerge('flex min-h-0 flex-1 flex-col', className)}
@@ -45,7 +46,9 @@ export function MatchmakingMapPool({
         <div
           className={twMerge(
             'play-map-layout grid h-full min-h-0 gap-3',
-            reviewCount > 0 &&
+            singleRow && 'gap-2',
+            !singleRow &&
+              reviewCount > 0 &&
               (regularCount > 0 ? 'play-map-layout-with-review' : 'play-map-layout-review-only')
           )}
           style={
@@ -53,12 +56,21 @@ export function MatchmakingMapPool({
               '--play-map-regular-columns': regularCount,
               '--play-map-review-min-width': `${reviewColumns * 132}px`,
               '--play-map-review-width': `${reviewColumns * 16}%`,
-              '--play-map-min-width': `${regularCount * 150 + reviewColumns * 132 + (regularCount && reviewCount ? 12 : 0)}px`
+              '--play-map-min-width': `${regularCount * 150 + reviewColumns * 132 + (regularCount && reviewCount ? 12 : 0)}px`,
+              ...(singleRow &&
+                maps.length > 0 && {
+                  gridTemplateColumns: `repeat(${maps.length}, minmax(0, 1fr))`,
+                  minWidth: maps.length * 140 + (maps.length - 1) * 8
+                })
             } as CSSProperties
           }
         >
           {groups.map((group) => (
-            <div key={String(group.review)} className="flex min-h-0 min-w-0 flex-col gap-2">
+            <div
+              key={String(group.review)}
+              className="flex min-h-0 min-w-0 flex-col gap-2"
+              style={singleRow ? { gridColumn: `span ${group.maps.length}` } : undefined}
+            >
               <h3
                 className={twMerge(
                   'shrink-0 text-[10px] font-semibold tracking-[0.16em] uppercase',
@@ -86,7 +98,9 @@ export function MatchmakingMapPool({
                     key={map.id}
                     map={map}
                     className={
-                      group.review && regularCount > 0 ? 'play-review-map-card' : undefined
+                      !singleRow && group.review && regularCount > 0
+                        ? 'play-review-map-card'
+                        : undefined
                     }
                     selected={selectedMapIds.includes(map.id)}
                     disabled={disabled}

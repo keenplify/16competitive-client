@@ -5099,3 +5099,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.1124.8 — 2026-11-24
 
 - Added Dust II Snow to the Winter FFA custom room map picker.
+
+## v2026.1124.9 — 2026-11-24
+
+- Small map pools show regular and review maps in one row with equally sized previews.
