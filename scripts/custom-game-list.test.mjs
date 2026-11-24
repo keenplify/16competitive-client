@@ -3,9 +3,18 @@ import ts from 'typescript'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { loadCustomGameList } from '../src/shared/custom-game-list.ts'
+import { loadCustomGameList, registeredRoomOrigin } from '../src/shared/custom-game-list.ts'
+import * as winterModes from '../src/renderer/src/features/matchmaking/winter-ffa-label.ts'
 
 const node = (id, latencyMs, available = true) => ({ id, latencyMs, available })
+
+test('occupied room host accepts its own origin and rejects unregistered origins', () => {
+  const publicApiUrl = 'https://ph.example:2280'
+  const nodes = [{ publicApiUrl, available: false }]
+  assert.equal(registeredRoomOrigin(nodes, publicApiUrl), publicApiUrl)
+  assert.throws(() => registeredRoomOrigin(nodes, 'https://ph.example'))
+  assert.throws(() => registeredRoomOrigin([], publicApiUrl))
+})
 
 test('a missing saved server falls back to the nearest responding region', async () => {
   const calls = []
@@ -111,6 +120,7 @@ test('partner web custom creation includes backend-enabled CS13 and excludes dis
   for (const enabled of [['unrated', 'ffa', 'cs13_3v3'], ['unrated']]) {
     const jsx = (type, props) => ({ type, props })
     const dependencies = {
+      './winter-ffa-label': winterModes,
       '../partner-branding/partner-branding.store': {
         usePartnerBrandingStore: (select) => select({ vip: null })
       },
