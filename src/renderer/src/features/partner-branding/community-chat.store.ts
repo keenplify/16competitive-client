@@ -87,12 +87,7 @@ export const useCommunityChatStore = create<State>((set, get) => ({
     set({ sending: true, error: null })
     try {
       const message = await window.api.communityChat.send(communityId, draft.trim())
-      toast.update(feedback, {
-        render: translate(language, 'directory.chatSent'),
-        type: 'success',
-        isLoading: false,
-        autoClose: 3000
-      })
+      toast.dismiss(feedback)
       if (get().accountId === accountId && get().communityId === communityId) {
         serial++ // Do not let an older history snapshot remove the just-sent message.
         set((state) => ({

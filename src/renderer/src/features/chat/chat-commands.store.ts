@@ -40,7 +40,7 @@ export const useChatCommandsStore = create<{ pending: boolean; send: (draft: str
       if (recipient && useAuthStore.getState().session?.player.id === accountId) {
         await useFriendChatStore.getState().open(recipient)
       }
-      toast.update(feedback, { render: text.sent, type: 'success', isLoading: false, autoClose: 2500 })
+      toast.dismiss(feedback)
       return true
     } catch (error) {
       const known = [text.noTarget, text.friendRequired, text.usage, `/w <${text.username}> <${text.message}>`]
