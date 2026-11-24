@@ -5103,3 +5103,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.1124.9 — 2026-11-24
 
 - Small map pools show regular and review maps in one row with equally sized previews.
+
+## v2026.1124.10 — 2026-11-24
+
+- Reopening the desktop launcher now restores Reconnect on the region hosting your active match, even when that region is full. An ended match returns you to your selected region or Automatic.
+- Custom rooms stay reachable after their match takes the region’s last slot.
+- Winter FFA custom rooms show the win target. Chat send feedback dismisses after delivery.
