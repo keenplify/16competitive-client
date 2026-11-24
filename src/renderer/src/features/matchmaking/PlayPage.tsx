@@ -369,11 +369,13 @@ export function PlayPage({
         : 'competitive'
   const legacyFirst = branding?.partnerId === '583704ab-6fc5-4b58-8fc2-d91cf1d7c051'
   const legacyTabs = cs13Modes.length
-    ? [{
-        value: 'cs13',
-        label: getMatchmakingModeLabel('cs13_3v3'),
-        disabled: (isSearching && activePlayTab !== 'cs13') || (!isSearching && !isLeader)
-      }]
+    ? [
+        {
+          value: 'cs13',
+          label: getMatchmakingModeLabel('cs13_3v3'),
+          disabled: (isSearching && activePlayTab !== 'cs13') || (!isSearching && !isLeader)
+        }
+      ]
     : []
   const matchMapPreview = match
     ? maps.find((map) => map.id === match.mapId)?.previewUrl || localMapPreviews[match.mapId]
@@ -746,7 +748,8 @@ export function PlayPage({
               else if (view === 'cs13') {
                 if (cs13Modes[0]) selectMode(cs13Modes[0])
               } else if (
-                (isCs16RankedMode(selectedMode) || selectedMode === 'arena') &&
+                view === 'noncompetitive' &&
+                !ffaTabModes.some((mode) => mode === selectedMode) &&
                 ffaTabModes[0]
               )
                 selectMode(ffaTabModes.includes('ffa') ? 'ffa' : ffaTabModes[0])
