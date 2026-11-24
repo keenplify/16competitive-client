@@ -19,8 +19,8 @@ export function WebHelperController(): JSX.Element | null {
   const accountId = useAuthStore((state) => state.session?.player.id ?? null)
   const page = useNavigationStore((state) => state.page)
   const onContinue = useWebHelperPromptStore((state) => state.onContinue)
-  const branding = usePartnerBrandingStore(state => state.branding)
-  const setSetupPromptsHidden = useWebHelperPromptStore(state => state.setSetupPromptsHidden)
+  const branding = usePartnerBrandingStore((state) => state.branding)
+  const setSetupPromptsHidden = useWebHelperPromptStore((state) => state.setSetupPromptsHidden)
   useEffect(() => {
     setSetupPromptsHidden(branding?.hideNativeHelperSetup === true)
   }, [branding?.hideNativeHelperSetup, setSetupPromptsHidden])
@@ -42,8 +42,6 @@ export function WebHelperController(): JSX.Element | null {
   // Dismissing the login prompt leaves the player on the current page. Only an
   // explicit search can continue into a queue.
   return isWebRuntime() && accountId ? (
-    <WebHelperPrompt
-      onContinue={page === 'play' && onContinue ? onContinue : () => {}}
-    />
+    <WebHelperPrompt onContinue={page === 'play' && onContinue ? onContinue : () => {}} />
   ) : null
 }

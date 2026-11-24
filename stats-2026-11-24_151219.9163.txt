@@ -1,0 +1,75 @@
+File Errors
+-------------------------
+
+Overlay Header
+-------------------------
+Flag Counts:
+  Bit 0 (WISE_FLAG_UNKNOWN_0): 0
+  Bit 1 (WISE_FLAG_UNKNOWN_1): 1
+  Bit 2 (WISE_FLAG_UNKNOWN_2): 0
+  Bit 3 (WISE_FLAG_FULLSCREEN): 1
+  Bit 4 (WISE_FLAG_UNKNOWN_4): 0
+  Bit 5 (WISE_FLAG_UNKNOWN_5): 1
+  Bit 6 (WISE_FLAG_UNKNOWN_6): 0
+  Bit 7 (WISE_FLAG_UNKNOWN_7): 1
+  Bit 8 (WISE_FLAG_PK_ZIP): 0
+  Bit 9 (WISE_FLAG_UNKNOWN_9): 0
+  Bit 10 (WISE_FLAG_UNKNOWN_10): 1
+  Bit 11 (WISE_FLAG_UNKNOWN_11): 1
+  Bit 12 (WISE_FLAG_UNKNOWN_12): 0
+  Bit 13 (WISE_FLAG_UNKNOWN_13): 1
+  Bit 14 (WISE_FLAG_UNKNOWN_14): 0
+  Bit 15 (WISE_FLAG_UNKNOWN_15): 0
+  Bit 16 (WISE_FLAG_UNKNOWN_16): 1
+  Bit 17 (WISE_FLAG_UNKNOWN_17): 0
+  Bit 18 (WISE_FLAG_UNKNOWN_18): 0
+  Bit 19 (WISE_FLAG_UNKNOWN_19): 0
+  Bit 20 (WISE_FLAG_UNKNOWN_20): 0
+  Bit 21 (WISE_FLAG_UNKNOWN_21): 0
+  Bit 22 (WISE_FLAG_UNKNOWN_22): 0
+  Bit 23 (WISE_FLAG_UNKNOWN_23): 0
+  Bit 24 (WISE_FLAG_UNKNOWN_24): 0
+  Bit 25 (WISE_FLAG_UNKNOWN_25): 0
+  Bit 26 (WISE_FLAG_UNKNOWN_26): 1
+  Bit 27 (WISE_FLAG_UNKNOWN_27): 0
+  Bit 28 (WISE_FLAG_UNKNOWN_28): 0
+  Bit 29 (WISE_FLAG_UNKNOWN_29): 0
+  Bit 30 (WISE_FLAG_FORCE_M4): 0
+  Bit 31 (WISE_FLAG_UNKNOWN_31): 0
+
+Should Contain File:
+  WiseColors.dib (0): 1
+    C:\Users\keenp\Downloads\16c-windows-cs13-runtime\full4109.exe
+  WiseScript.bin (1): 1
+    C:\Users\keenp\Downloads\16c-windows-cs13-runtime\full4109.exe
+  WISE0001.DLL (2): 1
+    C:\Users\keenp\Downloads\16c-windows-cs13-runtime\full4109.exe
+  CTL3D32.DLL (3): 1
+    C:\Users\keenp\Downloads\16c-windows-cs13-runtime\full4109.exe
+  FILE0004 (4): 1
+    C:\Users\keenp\Downloads\16c-windows-cs13-runtime\full4109.exe
+  Ocxreg32.EXE (5): 1
+    C:\Users\keenp\Downloads\16c-windows-cs13-runtime\full4109.exe
+  PROGRESS.DLL (6): 1
+    C:\Users\keenp\Downloads\16c-windows-cs13-runtime\full4109.exe
+  FILE0007 (7): 0
+  FILE0008 (8): 0
+  FILE0009 (9): 0
+  FILE000A (10): 0
+  INSTALL_SCRIPT (11): 0
+  FILE0XX.DAT (12): 1
+    C:\Users\keenp\Downloads\16c-windows-cs13-runtime\full4109.exe
+
+Header-Defined Files Hashes:
+
+Script
+-------------------------
+First Flag:
+
+Second Flag:
+
+Third Flag:
+
+Header Prefix Lengths:
+
+

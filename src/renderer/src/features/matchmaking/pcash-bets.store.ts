@@ -116,7 +116,11 @@ export const usePCashBetsStore = create<BetState>((set, get) => ({
       }
       if (next) {
         set({ snapshot: next })
-        usePaymentsStore.setState(state => state.ownerId === ownerId && state.snapshot ? { snapshot: { ...state.snapshot, pCash: next.balance } } : {})
+        usePaymentsStore.setState((state) =>
+          state.ownerId === ownerId && state.snapshot
+            ? { snapshot: { ...state.snapshot, pCash: next.balance } }
+            : {}
+        )
       }
       const confirmed = next?.bet?.stake === input.stake
       const message = error instanceof Error ? error.message : ''

@@ -303,7 +303,7 @@ export function CustomGamesPanel({
                     <Settings className="size-4" aria-hidden="true" />
                   </Button>
                   <Button
-                    disabled={disabled || savingSettings || settingsModalOpen}
+                    disabled={disabled || savingSettings || settingsModalOpen || (roomMode === 'winter_ffa' && playingMembers.length < 2)}
                     onClick={() => void startRoom()}
                   >
                     {t('customRoom.start')}
@@ -370,7 +370,7 @@ export function CustomGamesPanel({
                       )}
                       {editable && !member && (
                         <div className="relative z-10 ml-auto flex items-center gap-2">
-                          {!blocked && (
+                          {!blocked && roomMode !== 'winter_ffa' && (
                             <button
                               type="button"
                               className="grid size-7 place-items-center text-neutral-500 transition hover:bg-white/10 hover:text-sky-300"

@@ -102,7 +102,12 @@ export function MatchFoundReadyCheck({
   }, [loadRanks, match.matchId, match.teams])
   const acceptSelection = async (): Promise<void> => {
     const bets = usePCashBetsStore.getState()
-    if (bets.matchId === match.matchId && bets.snapshot?.enabled && Number(bets.amount) > 0 && !bets.snapshot.bet) {
+    if (
+      bets.matchId === match.matchId &&
+      bets.snapshot?.enabled &&
+      Number(bets.amount) > 0 &&
+      !bets.snapshot.bet
+    ) {
       if (!(await bets.place())) return
     }
     onAccept()
@@ -188,7 +193,12 @@ export function MatchFoundReadyCheck({
             </aside>
           )}
 
-          <PCashStakePanel matchId={match.matchId} mode={match.mode} disabled={preparing || placingBet || readyResponse !== 'pending'} className="mt-5" />
+          <PCashStakePanel
+            matchId={match.matchId}
+            mode={match.mode}
+            disabled={preparing || placingBet || readyResponse !== 'pending'}
+            className="mt-5"
+          />
 
           <div className="match-ready-actions mt-5 flex flex-wrap justify-center gap-3">
             <Button
@@ -206,7 +216,8 @@ export function MatchFoundReadyCheck({
               className="min-w-28 rounded-none border border-white/15 px-6 text-white/65 hover:border-white/35"
               variant="ghost"
               disabled={
-                preparing || placingBet ||
+                preparing ||
+                placingBet ||
                 (readyResponse !== 'pending' &&
                   !(readyResponse === 'accepted' && canDeclineAfterAccept))
               }
