@@ -5115,3 +5115,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - Players using the PAPAMO VGUI2 helper now see the FFA leader’s score, kill target, and name at the top of the screen. Normal FFA uses a gold trophy panel. Winter FFA uses a snow-textured panel with teal corner accents.
+
+## v2026.1125.2 — 2026-11-25
+
+- Fixed the missing FFA leader panel and Winter snowball charge meter in NextClient.
