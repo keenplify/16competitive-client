@@ -67,6 +67,7 @@ const PING_INTERVAL_MS = 20_000
 const PONG_TIMEOUT_MS = 10_000
 const MATCH_ATTENTION_DURATION_MS = 1_500
 const MATCH_END_ATTENTION_DURATION_MS = 5_000
+const FFA_ANTHEM_GRACE_MS = 12_000
 const MATCH_RESULT_GRACE_PERIOD_MS = 10_000
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -760,13 +761,18 @@ class MatchmakingConnection {
       })
       if (message.type === 'match_finished' && this.resumableWarmupMatchId === message.matchId)
         this.resumableWarmupMatchId = null
-      if (this.warmupMatchId === message.matchId)
+      const finishWarmup = () => {
+        if (this.warmupMatchId !== message.matchId) return
         void this.leaveWarmup('server-ended').catch((error) =>
           console.warn('[QueueWarmup] cleanup failed', error)
         )
+      }
+      const playAnthem = message.type === 'match_finished' && message.mode === 'ffa'
+      if (playAnthem) setTimeout(finishWarmup, FFA_ANTHEM_GRACE_MS)
+      else finishWarmup()
       if (
         message.type === 'match_finished' &&
-        (message.publicFfa || isRankedBotSessionMode(message.mode, this.desiredMode))
+        !playAnthem && (message.publicFfa || isRankedBotSessionMode(message.mode, this.desiredMode))
       )
         this.focusLauncher(true, MATCH_END_ATTENTION_DURATION_MS)
     }
@@ -1957,7 +1963,7 @@ class MatchmakingConnection {
             this.closeGameForMatch(parsed.matchId)
             if (!superseded) this.focusLauncher()
           },
-          parsed.publicFfa ? 0 : MATCH_RESULT_GRACE_PERIOD_MS
+          parsed.mode === 'ffa' ? FFA_ANTHEM_GRACE_MS : parsed.publicFfa ? 0 : MATCH_RESULT_GRACE_PERIOD_MS
         )
         this.matchEndTimers.set(parsed.matchId, timer)
         setTimeout(() => this.reconnectAfterMatch(), 0)

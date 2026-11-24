@@ -133,7 +133,7 @@ export function MatchSearchPanel({
             <X className="size-3.5" aria-hidden="true" />
           </button>
         </div>
-        <div className="relative border-t border-white/10 px-2.5 py-2">
+        {selectedMode !== 'ffa' && <div className="relative border-t border-white/10 px-2.5 py-2">
           <ButtonWithHelp
             className="h-7 w-full"
             buttonClassName={twMerge(
@@ -146,7 +146,7 @@ export function MatchSearchPanel({
           >
             {playWithBotsLabel}
           </ButtonWithHelp>
-        </div>
+        </div>}
       </aside>
     )
   }
@@ -193,7 +193,7 @@ export function MatchSearchPanel({
           <PlayerActivity />
         </p>
         <div className="mt-3 flex h-8 gap-2">
-          <ButtonWithHelp
+          {selectedMode !== 'ffa' && <ButtonWithHelp
             className="h-8 flex-1"
             buttonClassName={twMerge(
               'text-[10px]',
@@ -204,7 +204,7 @@ export function MatchSearchPanel({
             onClick={() => void playWithBots()}
           >
             {playWithBotsLabel}
-          </ButtonWithHelp>
+          </ButtonWithHelp>}
           <Button
             className={twMerge(
               'h-8 rounded-none border border-white/10 bg-white/5 text-[11px] tracking-[0.14em] text-neutral-300 uppercase hover:bg-white/10 hover:text-white',
