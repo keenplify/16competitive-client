@@ -21,6 +21,9 @@ class MainMatchmakingDiagnostics extends MatchmakingDiagnostics {
   historyReport(): Promise<string> {
     return this.history.report()
   }
+  lastMatchOrigin(): Promise<string | null> {
+    return this.history.lastMatchOrigin()
+  }
   flush(): Promise<void> {
     return this.history.flush()
   }

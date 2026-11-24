@@ -65,6 +65,7 @@ test('restart preserves queue, connect, preparation and helper failure across la
   // Exercise recording during the asynchronous read of the previous run.
   second.record('socket_received', { type: 'authenticated' })
   const report = await parsed(second)
+  assert.equal(await second.lastMatchOrigin(), 'https://node.example.test')
   assert.deepEqual(
     report.timeline.map((x) => x.data.type),
     [
@@ -85,6 +86,8 @@ test('restart preserves queue, connect, preparation and helper failure across la
   assert.equal(report.timeline[4].data.originalCode, 'GAME_SPAWN_FAILED')
   assert.equal(report.timeline[1].data.hostApiUrl, 'https://node.example.test')
   await second.flush()
+  second.record('socket_received', { type: 'match_finished', matchId: 'match-one' })
+  assert.equal(await second.lastMatchOrigin(), null)
   const bytes = await readFile(join(dir, fileName('player-one')), 'utf8')
   for (const value of [
     'secret-password',

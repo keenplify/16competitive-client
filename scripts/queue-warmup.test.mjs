@@ -15,7 +15,8 @@ async function harness({
   window = null,
   timers = null,
   launchError = null,
-  activeCs13Match = null
+  activeCs13Match = null,
+  previousOrigin = null
 } = {}) {
   const calls = [],
     events = [],
@@ -27,7 +28,8 @@ async function harness({
     static CLOSED = 3
     readyState = 1
     listeners = new Map()
-    constructor() {
+    constructor(url) {
+      this.url = url
       sockets.push(this)
     }
     addEventListener(type, listener) {
@@ -95,7 +97,12 @@ async function harness({
     },
     readyCheckRemainingMs: (deadline) => Date.parse(deadline) - Date.now(),
     serverClockNow: () => Date.now(),
-    matchmakingDiagnostics: new MatchmakingDiagnostics(),
+    matchmakingDiagnostics: Object.assign(new MatchmakingDiagnostics(), {
+      lastMatchOrigin: async () => previousOrigin
+    }),
+    getSessionToken: () => 'test-token',
+    getMatchmakingNodes: async () => [{ publicApiUrl: 'https://ph.invalid', available: false }],
+    resolvePreferredMatchmakingApiUrl: async () => 'https://sea.invalid',
     getSessionUsername: () => 'fixture-player',
     isMatchmakingMode: (value) => ['5v5', 'arena', 'ffa', '3v3'].includes(value),
     isCs16RankedMode,
@@ -183,6 +190,23 @@ async function harness({
     validate: module.namespace.isServerMessage
   }
 }
+
+test('restart checks the registered match host even when full and returns to Automatic for a stale match', async () => {
+  const h = await harness({ previousOrigin: 'https://ph.invalid' })
+  h.connection.desiredMode = null
+  h.connection.freshProcess = true
+  await h.connection.createSocket('test-token')
+  const socket = h.sockets[0]
+  assert.equal(socket.url, 'wss://ph.invalid/matchmaking')
+  socket.listeners.get('message')({ data: JSON.stringify({ type: 'error', code: 'NOT_QUEUED', message: 'Match ended' }) })
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(h.sockets[1].url, 'wss://sea.invalid/matchmaking')
+  h.connection.disconnect()
+  const unknown = await harness({ previousOrigin: 'https://unknown.invalid' })
+  await unknown.connection.createSocket('test-token')
+  assert.equal(unknown.sockets[0].url, 'wss://sea.invalid/matchmaking')
+  unknown.connection.disconnect()
+})
 
 for (const mode of ['ffa', 'arena'])
   test(`${mode} leave validates the session and cannot leave ranked matchmaking`, async () => {
@@ -649,7 +673,13 @@ test('public FFA post-match remains visible after game exit and clears for a ran
 })
 
 test('public FFA completion closes the warmup game while retaining the ranked queue', async () => {
-  const h = await harness()
+  let finishAnthem
+  const h = await harness({ timers: {
+    setTimeout(callback, delay) {
+      if (delay === 12000) { finishAnthem = callback; return }
+      return setTimeout(callback, delay)
+    }
+  } })
   try {
     await h.connection.joinWarmup('ffa', 'de_dust2')
     h.connection.handleWarmup({ ...found, mode: 'ffa' }, h.socket)
@@ -666,6 +696,8 @@ test('public FFA completion closes the warmup game while retaining the ranked qu
       },
       h.socket
     )
+    assert.equal(h.calls.some(([action]) => action === 'shutdown'), false)
+    finishAnthem()
     await h.connection.warmupCleanup
     assert.ok(h.calls.some(([action]) => action === 'shutdown'))
     assert.equal(h.connection.isQueued(), true)
