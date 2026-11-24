@@ -2,7 +2,7 @@ import type { CustomGameMode } from '../../../../shared/custom-games'
 import type { MatchmakingMap } from '../../../../shared/matchmaking'
 
 export type RoomModeChoice = CustomGameMode | 'winter_ffa'
-const winterMaps = new Set(['cs_office', 'aim_glacier', 'fy_iceworld2k'])
+const winterMaps = new Set(['cs_office', 'aim_glacier', 'fy_iceworld2k', 'de_dust2_snow'])
 
 export function backendMode(choice: RoomModeChoice): CustomGameMode {
   return choice === 'winter_ffa' ? 'ffa' : choice

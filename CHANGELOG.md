@@ -5095,3 +5095,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.1124.7 — 2026-11-24
 
 - Winter FFA finds an eligible public match automatically and keeps the game open for 12 seconds after the result so players can hear the winner’s anthem.
+
+## v2026.1124.8 — 2026-11-24
+
+- Added Dust II Snow to the Winter FFA custom room map picker.
