@@ -32,6 +32,7 @@ import {
   pcashToLocalMinor
 } from '../../../../shared/community-currency'
 import { useTranslation } from '../i18n/i18n'
+import { customModeLabel, roomModeChoice } from './winter-ffa-label'
 import { CreateCustomGameModal } from './CreateCustomGameModal'
 import { JoinCustomGameModal } from './JoinCustomGameModal'
 import { useCustomGamesStore } from './custom-games.store'
@@ -188,6 +189,7 @@ export function CustomGamesPanel({
   const editable = owner && room?.state === 'WAITING'
   const currentMember = room?.members.find(({ id }) => id === currentPlayerId)
   const playingMembers = room?.members.filter(({ team }) => team !== 0) ?? []
+  const roomMode = room && roomModeChoice(room.mode, room.mapId)
   const ffaCapacity = room ? room.teamOneCapacity + room.teamTwoCapacity : 16
   const teamOnePlayingCount = room?.members.filter(({ team }) => team === 1).length ?? 0
   const teamTwoPlayingCount = room?.members.filter(({ team }) => team === 2).length ?? 0
@@ -279,7 +281,7 @@ export function CustomGamesPanel({
               <p className="mt-1 text-xs tracking-wide text-neutral-400 uppercase">
                 {room.region} ·{' '}
                 {room.mode === 'ffa'
-                  ? 'FFA · first to 50'
+                  ? `${t(customModeLabel(roomMode ?? 'ffa'))} · ${t('matchmaking.ffaKillTarget').replace('{kills}', roomMode === 'winter_ffa' ? '30' : '50')}`
                   : room.teamOneCapacity === room.teamTwoCapacity
                     ? `${CUSTOM_GAME_MODE_LABELS[room.mode]} ${room.teamOneCapacity}v${room.teamTwoCapacity}`
                     : `${CUSTOM_GAME_MODE_LABELS[room.mode]} custom`}{' '}

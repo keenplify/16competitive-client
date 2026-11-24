@@ -241,6 +241,7 @@ const english = {
   'matchmaking.modeHelpUnrated': 'Unrated 5v5. First team to 9 rounds wins; MMR does not change.',
   'matchmaking.modeHelpLegacy': 'Unrated 5v5 with CS 1.3 movement. First team to 9 rounds wins.',
   'matchmaking.modeHelpLegacy3v3': 'Unrated 3v3 with CS 1.3 movement. First team to 9 rounds wins.',
+  'matchmaking.ffaKillTarget': 'First to {kills} kills',
   'matchmaking.modeHelpFfa': 'Free-for-all deathmatch. First player to 50 kills wins.',
   'matchmaking.modeHelpArena': 'Arena on fy_ and aim_ maps. First team to win 9 rounds wins.',
   'matchmaking.modeHelp3v3': 'Ranked 3v3 · MR8: 8 rounds per half, first to 9.',
@@ -436,6 +437,7 @@ const russian: Record<TranslationKey, string> = {
   'matchmaking.modeHelpUnrated': 'Нерейтинговый 5 на 5. Победа за 9 раундов; MMR не меняется.',
   'matchmaking.modeHelpLegacy': 'Нерейтинговый 5 на 5 с движением CS 1.3. Победа за 9 раундов.',
   'matchmaking.modeHelpLegacy3v3': 'Нерейтинговый 3 на 3 с движением CS 1.3. Победа за 9 раундов.',
+  'matchmaking.ffaKillTarget': 'До {kills} убийств',
   'matchmaking.modeHelpFfa': 'Бой каждый за себя. Побеждает первый игрок с 50 убийствами.',
   'matchmaking.modeHelpArena':
     'Арена на картах fy_ и aim_. Побеждает команда, первой выигравшая 9 раундов.',
@@ -631,6 +633,7 @@ const taglish: Record<TranslationKey, string> = {
     'Unrated 5v5 na may CS 1.3 movement. Unang team sa 9 rounds ang panalo.',
   'matchmaking.modeHelpLegacy3v3':
     'Unrated 3v3 na may CS 1.3 movement. Unang team sa 9 rounds ang panalo.',
+  'matchmaking.ffaKillTarget': 'Unang maka-{kills} kills',
   'matchmaking.modeHelpFfa': 'Free-for-all deathmatch. Unang player sa 50 kills ang panalo.',
   'matchmaking.modeHelpArena':
     'Arena sa fy_ at aim_ maps. Unang team na manalo ng 9 rounds ang panalo.',
@@ -823,6 +826,7 @@ const thai: Record<TranslationKey, string> = {
     '5v5 ไม่จัดอันดับพร้อมการเคลื่อนไหวแบบ CS 1.3 ทีมที่ชนะ 9 รอบก่อนเป็นผู้ชนะ',
   'matchmaking.modeHelpLegacy3v3':
     '3v3 ไม่จัดอันดับพร้อมการเคลื่อนไหวแบบ CS 1.3 ทีมที่ชนะ 9 รอบก่อนเป็นผู้ชนะ',
+  'matchmaking.ffaKillTarget': 'ชนะเมื่อได้ {kills} คิล',
   'matchmaking.modeHelpFfa': 'เดธแมตช์ทุกคนสู้กันเอง ผู้เล่นที่ได้ 50 คิลก่อนเป็นผู้ชนะ',
   'matchmaking.modeHelpArena': 'Arena บนแผนที่ fy_ และ aim_ ทีมที่ชนะครบ 9 รอบก่อนเป็นผู้ชนะ',
   'matchmaking.modeHelp3v3': 'จัดอันดับ 3v3 · MR8: ครึ่งละ 8 รอบ ชนะเมื่อถึง 9 รอบ',
@@ -1019,6 +1023,7 @@ const indonesian: Record<TranslationKey, string> = {
     '5v5 tanpa peringkat dengan gerakan CS 1.3. Tim pertama yang menang 9 ronde menjadi pemenang.',
   'matchmaking.modeHelpLegacy3v3':
     '3v3 tanpa peringkat dengan gerakan CS 1.3. Tim pertama yang menang 9 ronde menjadi pemenang.',
+  'matchmaking.ffaKillTarget': 'Pertama mencapai {kills} kill',
   'matchmaking.modeHelpFfa': 'Deathmatch semua lawan semua. Pemain pertama dengan 50 kill menang.',
   'matchmaking.modeHelpArena':
     'Arena di peta fy_ dan aim_. Tim pertama yang memenangkan 9 ronde menang.',
@@ -1216,6 +1221,7 @@ const portuguese: Record<TranslationKey, string> = {
     '5v5 sem ranking com movimentação de CS 1.3. Vence a primeira equipe a ganhar 9 rodadas.',
   'matchmaking.modeHelpLegacy3v3':
     '3v3 sem ranking com movimentação de CS 1.3. Vence a primeira equipe a ganhar 9 rodadas.',
+  'matchmaking.ffaKillTarget': 'Primeiro a atingir {kills} abates',
   'matchmaking.modeHelpFfa':
     'Mata-mata todos contra todos. Vence o primeiro jogador a conseguir 50 abates.',
   'matchmaking.modeHelpArena':
@@ -1413,6 +1419,7 @@ const japanese: Record<TranslationKey, string> = {
     'CS 1.3の移動仕様を使う非ランク戦5v5。先に9ラウンドを取ったチームが勝利。',
   'matchmaking.modeHelpLegacy3v3':
     'CS 1.3の移動仕様を使う非ランク戦3v3。先に9ラウンドを取ったチームが勝利。',
+  'matchmaking.ffaKillTarget': '先に{kills}キルで勝利',
   'matchmaking.modeHelpFfa': '全員敵のデスマッチ。先に50キルしたプレイヤーが勝利。',
   'matchmaking.modeHelpArena':
     'fy_ と aim_ マップのアリーナ。先に9ラウンドを獲得したチームが勝利。',
@@ -1608,6 +1615,7 @@ const hindi: Record<TranslationKey, string> = {
     'CS 1.3 मूवमेंट के साथ बिना रैंक वाला 5v5। पहले 9 राउंड जीतने वाली टीम विजेता होगी।',
   'matchmaking.modeHelpLegacy3v3':
     'CS 1.3 मूवमेंट के साथ बिना रैंक वाला 3v3। पहले 9 राउंड जीतने वाली टीम विजेता होगी।',
+  'matchmaking.ffaKillTarget': 'पहले {kills} किल पर जीत',
   'matchmaking.modeHelpFfa': 'हर खिलाड़ी अपने लिए डेथमैच। पहले 50 किल करने वाला खिलाड़ी जीतेगा।',
   'matchmaking.modeHelpArena': 'fy_ और aim_ मैप पर एरीना। पहले 9 राउंड जीतने वाली टीम विजेता होगी।',
   'matchmaking.modeHelp3v3': 'रैंक्ड 3v3 · MR8: हर हाफ में 8 राउंड, पहले 9 जीतने वाली टीम विजेता।',
