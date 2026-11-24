@@ -38,7 +38,7 @@ import { createAutomaticMatchReporter } from './automatic-match-report'
 import { createAutomaticStorageReporter } from './automatic-storage-report'
 import { reportDiagnosticIssue } from './diagnostic-logs'
 import { matchmakingDiagnostics } from './matchmaking-diagnostics'
-import { resolvePreferredMatchmakingApiUrl, toMatchmakingWsUrl } from './matchmaking-regions'
+import { getMatchmakingNodes, resolvePreferredMatchmakingApiUrl, toMatchmakingWsUrl } from './matchmaking-regions'
 import {
   closeCounterStrikeForMatch,
   shutdownManagedGame,
@@ -809,6 +809,7 @@ class MatchmakingConnection {
   private finishedMatchIds = new Set<string>()
   private manuallyDisconnected = false
   private freshProcess = true
+  private checkedRecoveryOwner: string | null = null
   private authenticated = false
   private authenticatedPlayer: QueuedPlayer | null = null
   private recoveryStatusPending = false
@@ -961,6 +962,7 @@ class MatchmakingConnection {
   }
 
   disconnect(): void {
+    this.checkedRecoveryOwner = null
     void this.leaveWarmup().catch((error) => console.warn('[QueueWarmup] cleanup failed', error))
     this.readyNotice?.close()
     this.readyNotice = null
@@ -1494,10 +1496,24 @@ class MatchmakingConnection {
   private async createSocket(token: string, apiUrl?: string, handoff = false): Promise<void> {
     await activateIcafeBranch(token)
     let targetApiUrl = apiUrl ?? this.hostApiUrl
+    let probingPreviousHost = false
     let socket: WebSocket
     let websocketUrl: string
     try {
+      const owner = getSessionUsername()
+      if (!targetApiUrl && owner && this.checkedRecoveryOwner !== owner) {
+        this.checkedRecoveryOwner = owner
+        matchmakingDiagnostics.setOwner(owner)
+        const previous = await matchmakingDiagnostics.lastMatchOrigin()
+        if (previous) {
+          // Disk state is only a hint. Only a currently registered origin may receive the session.
+          const nodes = await getMatchmakingNodes(false).catch(() => [])
+          targetApiUrl = nodes.find((node) => new URL(node.publicApiUrl).origin === previous)?.publicApiUrl ?? null
+          probingPreviousHost = Boolean(targetApiUrl)
+        }
+      }
       targetApiUrl ??= await resolvePreferredMatchmakingApiUrl()
+      if (this.manuallyDisconnected || token !== getSessionToken()) return
       websocketUrl = toMatchmakingWsUrl(targetApiUrl)
       if (LOCAL_DEVELOPMENT && !isLoopbackBackend(websocketUrl))
         throw new Error('Local development cannot connect to a remote matchmaking node')
@@ -1551,6 +1567,14 @@ class MatchmakingConnection {
         return
       }
       this.traceDiagnostic('socket_received', parsed)
+      if (probingPreviousHost && !parsed.whileQueued) {
+        if (parsed.type === 'error' && parsed.code === 'NOT_QUEUED' && socket === this.socket) {
+          probingPreviousHost = false
+          this.reconnectAfterMatch()
+          return
+        }
+        if ('matchId' in parsed || parsed.type === 'queue_status') probingPreviousHost = false
+      }
       if (parsed.whileQueued || ('matchId' in parsed && this.warmupMatchIds.has(parsed.matchId))) {
         if (
           'matchId' in parsed &&
@@ -1982,9 +2006,11 @@ class MatchmakingConnection {
     })
     socket.addEventListener('error', () => {
       console.warn('[Matchmaking] WebSocket connection error')
+      if (probingPreviousHost && this.socket === socket) this.activeApiUrl = null
       if (!handoff) this.handleSocketDisconnect(socket)
     })
     socket.addEventListener('close', (event) => {
+      if (probingPreviousHost && this.socket === socket) this.activeApiUrl = null
       this.traceDiagnostic('socket_closed', {
         type: 'socket_closed',
         closeCode: event.code,

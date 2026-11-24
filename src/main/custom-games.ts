@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { loadCustomGameList } from '../shared/custom-game-list'
+import { loadCustomGameList, registeredRoomOrigin } from '../shared/custom-game-list'
 import { join } from 'node:path'
 import { LegacyGameService } from './game/legacy-game-service'
 import { getSessionToken } from './auth'
@@ -186,12 +186,7 @@ const validateSettingsUpdate = (value: unknown): CustomGameSettingsUpdate => {
 
 const allowedApiUrl = async (requested?: string): Promise<string> => {
   if (!requested) return resolvePreferredMatchmakingApiUrl()
-  const origin = new URL(requested).origin
-  const nodes = await getMatchmakingNodes(false)
-  if (!nodes.some((node) => node.available && new URL(node.publicApiUrl).origin === origin)) {
-    throw new Error('The custom game server is unavailable')
-  }
-  return origin
+  return registeredRoomOrigin(await getMatchmakingNodes(false), requested)
 }
 
 const request = async (

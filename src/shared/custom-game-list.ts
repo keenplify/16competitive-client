@@ -4,6 +4,15 @@ import type { MatchmakingNode } from './matchmaking'
 
 export const CUSTOM_GAME_LIST_UNAVAILABLE = 'customGames.listUnavailable'
 
+export function registeredRoomOrigin(nodes: MatchmakingNode[], requested: string): string {
+  const origin = new URL(requested).origin
+  // A room still needs its registered API after its match takes the last slot.
+  if (!nodes.some((node) => new URL(node.publicApiUrl).origin === origin)) {
+    throw new Error('The custom game server is unavailable')
+  }
+  return origin
+}
+
 export interface CustomGameListResponse {
   rooms: CustomGameRoom[]
   /** The player's community betting config; identical across nodes. */

@@ -246,6 +246,23 @@ export class LaunchHistory {
     else await this.writes
   }
 
+  async lastMatchOrigin(): Promise<string | null> {
+    const state = this.state
+    if (!state) return null
+    await state.loaded
+    if (this.state !== state) return null
+    const ended = new Set<string>()
+    for (const { stage, data } of this.recent(state.entries).reverse()) {
+      if (stage !== 'socket_received' || data.whileQueued || typeof data.matchId !== 'string') continue
+      if (data.type === 'match_finished' || data.type === 'match_cancelled') ended.add(data.matchId)
+      if (data.type !== 'match_connect' && data.type !== 'match_found') continue
+      if (ended.has(data.matchId)) return null
+      const origin = data.hostApiUrl ?? data.activeApiUrl
+      if (typeof origin === 'string') return origin
+    }
+    return null
+  }
+
   async report(): Promise<string> {
     const state = this.state
     if (!state) return JSON.stringify({ status: 'unavailable', reason: 'no_authenticated_account' })
