@@ -4,6 +4,47 @@ use std::{
     path::Path,
 };
 
+// Multiple browser tabs can dispatch the same authenticated protocol link while
+// the first helper is still starting. Windows releases the named object when
+// the owning process exits, including after a crash.
+#[cfg(windows)]
+pub struct WebMatchRequest(windows_sys::Win32::Foundation::HANDLE);
+
+#[cfg(windows)]
+impl WebMatchRequest {
+    pub fn claim(match_id: &str, player: &str) -> Result<Option<Self>, String> {
+        use sha2::{Digest, Sha256};
+        use windows_sys::Win32::{
+            Foundation::{GetLastError, ERROR_ALREADY_EXISTS},
+            System::Threading::CreateMutexW,
+        };
+        let key = Sha256::digest(format!("{match_id}:{player}").as_bytes());
+        let name: Vec<u16> = format!(r"Local\16competitive-web-match-{key:x}")
+            .encode_utf16().chain(Some(0)).collect();
+        let handle = unsafe { CreateMutexW(std::ptr::null(), 0, name.as_ptr()) };
+        if handle.is_null() { return Err("Could not coordinate the web match launch".into()); }
+        let existing = unsafe { GetLastError() } == ERROR_ALREADY_EXISTS;
+        let guard = Self(handle);
+        if existing { Ok(None) } else { Ok(Some(guard)) }
+    }
+}
+
+#[cfg(windows)]
+impl Drop for WebMatchRequest {
+    fn drop(&mut self) { unsafe { windows_sys::Win32::Foundation::CloseHandle(self.0); } }
+}
+
+#[cfg(all(test, windows))]
+#[test]
+fn web_launch_coalesces_only_the_same_player_and_match() {
+    let id = uuid::Uuid::new_v4().to_string();
+    let guard = WebMatchRequest::claim(&id, "a").unwrap().unwrap();
+    assert!(WebMatchRequest::claim(&id, "a").unwrap().is_none());
+    assert!(WebMatchRequest::claim(&id, "b").unwrap().is_some());
+    drop(guard);
+    assert!(WebMatchRequest::claim(&id, "a").unwrap().is_some());
+}
+
 pub struct Lease {
     _file: File,
 }

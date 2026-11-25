@@ -11,7 +11,6 @@ sha2 = "0.10"
 base64 = "0.22"
 ed25519-dalek = "2"
 uuid = { version = "1", features = ["v4"] }
-goblin = "0.9"
 ureq = { version = "2", features = ["json", "tls"] }
 url = "2"
 fs2 = "0.4"
@@ -33,6 +32,7 @@ rquickjs = { version = "0.14", features = ["array-buffer"] }
 libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
+object = { version = "0.37", default-features = false, features = ["read_core", "pe", "std"] }
 tray-icon = "0.19"
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_Registry", "Win32_Storage_FileSystem", "Win32_System_Pipes", "Win32_UI_WindowsAndMessaging", "Win32_UI_Shell", "Win32_System_Threading", "Win32_System_SystemInformation", "Win32_System_Diagnostics_ToolHelp"] }
 

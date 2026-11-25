@@ -20,7 +20,8 @@ async function formHarness(
   component,
   selectedMode = 'arena',
   roomMode = 'unrated',
-  hideDesktop = false
+  hideDesktop = false,
+  game = null
 ) {
   const source = ts.transpileModule(
     await readFile(
@@ -71,7 +72,7 @@ async function formHarness(
   const module = new vm.SourceTextModule(source, { context })
   await module.link((specifier) => {
     const exports = specifier.includes('partner-game-preference.store')
-      ? { usePartnerGamePreferenceStore: (select) => select({ game: null }) }
+      ? { usePartnerGamePreferenceStore: (select) => select({ game }) }
       : specifier.includes('shared/game-version')
         ? { gameForMode: (mode) => (mode.startsWith('cs13_') ? 'cs13' : 'cs16') }
         : specifier === 'react/jsx-runtime'
@@ -230,4 +231,22 @@ for (const component of ['CreateCustomGameModal', 'RoomSettingsModal']) {
     assert.equal(h.submitted[0].mode, 'ffa')
     assert.equal(h.submitted[0].mapId, 'cs_office')
   })
+}
+
+for (const component of ['CreateCustomGameModal', 'RoomSettingsModal']) {
+  for (const game of ['cs16', 'cs13']) {
+    test(component + ' filters room choices for a ' + game + ' handoff', async () => {
+      const h = await formHarness(component, 'cs13_3v3', 'unrated', false, game)
+      const select = find(h.render(), (node) => node.type === 'select')
+      const offered = (value) =>
+        Boolean(
+          find(
+            select,
+            (node) => node.type === 'option' && node.props.value === value && !node.props.disabled
+          )
+        )
+      assert.equal(offered('cs13_3v3'), game === 'cs13')
+      assert.equal(offered('unrated'), game === 'cs16')
+    })
+  }
 }

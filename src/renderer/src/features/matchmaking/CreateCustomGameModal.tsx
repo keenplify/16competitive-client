@@ -46,22 +46,16 @@ export function CreateCustomGameModal({
   const error = useCustomGamesStore((state) => state.error)
   const [name, setName] = useState(t('customGames.defaultName'))
   const availableModes = roomModeChoices(
-    CUSTOM_GAME_MODES.filter((mode) => enabledModes.includes(mode)),
+    CUSTOM_GAME_MODES.filter(
+      (mode) =>
+        enabledModes.includes(mode) && (!preferredGame || gameForMode(mode) === preferredGame)
+    ),
     maps
   )
   const [mode, setMode] = useState<RoomModeChoice>(() => {
     const selected = useMatchmakingStore.getState().selectedMode
-    if (
-      isCustomGameMode(selected) &&
-      availableModes.includes(selected) &&
-      (!preferredGame || gameForMode(selected) === preferredGame)
-    )
-      return selected
-    return (
-      availableModes.find((choice) => gameForMode(backendMode(choice)) === preferredGame) ??
-      availableModes[0] ??
-      'unrated'
-    )
+    if (isCustomGameMode(selected) && availableModes.includes(selected)) return selected
+    return availableModes[0] ?? (preferredGame === 'cs13' ? 'cs13_3v3' : 'unrated')
   })
   const [mapId, setMapId] = useState<string | null>(null)
   const [password, setPassword] = useState('')

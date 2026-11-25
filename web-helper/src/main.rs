@@ -862,6 +862,10 @@ fn cleanup_owned_file(file: Option<(PathBuf, String)>) -> Result<(), String> {
 }
 
 fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), String> {
+    #[cfg(windows)]
+    let Some(_request) = session_mode::WebMatchRequest::claim(&connection.match_id, &connection.player_name)? else {
+        return Ok(());
+    };
     launch_native_match(connection, api, token, &mut || Ok(()))
 }
 

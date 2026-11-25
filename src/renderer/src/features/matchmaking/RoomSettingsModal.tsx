@@ -1,3 +1,5 @@
+import { gameForMode } from '../../../../shared/game-version'
+import { usePartnerGamePreferenceStore } from '../settings/partner-game-preference.store'
 import {
   backendMode,
   customModeLabel,
@@ -61,6 +63,7 @@ export function RoomSettingsModal({
   const saving = useCustomGamesStore((state) => state.savingSettings)
   const error = useCustomGamesStore((state) => state.error)
   const betting = useCustomGamesStore((state) => state.betting)
+  const preferredGame = usePartnerGamePreferenceStore((state) => state.game)
   const enabledModes = useMatchmakingStore((state) => state.customModes)
   const catalogUnavailable = useMatchmakingStore((state) => state.mapsStatus !== 'ready')
   const [name, setName] = useState(room.name)
@@ -77,12 +80,21 @@ export function RoomSettingsModal({
   const [customBetText, setCustomBetText] = useState('')
   const nameRef = useRef<HTMLInputElement>(null)
   const modes = roomModeChoices(
-    CUSTOM_GAME_MODES.filter((candidate) => enabledModes.includes(candidate)),
+    CUSTOM_GAME_MODES.filter(
+      (candidate) =>
+        enabledModes.includes(candidate) &&
+        (!preferredGame || gameForMode(candidate) === preferredGame)
+    ),
     maps
   )
   const selectedMode = backendMode(mode)
   const currentChoice = roomModeChoice(room.mode, room.mapId)
-  if (catalogUnavailable && !modes.includes(currentChoice)) modes.push(currentChoice)
+  if (
+    catalogUnavailable &&
+    (!preferredGame || gameForMode(room.mode) === preferredGame) &&
+    !modes.includes(currentChoice)
+  )
+    modes.push(currentChoice)
   const modeAvailable = modes.includes(mode)
   const allowsLegacyMode = mode !== 'cs13_3v3' && mode !== 'cs13_1v1'
   const allowsMoney = selectedMode !== 'ffa' && selectedMode !== 'arena'

@@ -217,6 +217,22 @@
   --team-accent: #87b2a4;
   background: #1a2425;
 }
+@container (800px < width <= 1200px) {
+  :root:not([data-launcher-theme='vgui2']) .room-main-grid {
+    grid-template-columns: minmax(150px, 0.5fr) repeat(2, minmax(0, 1fr));
+  }
+  :root:not([data-launcher-theme='vgui2']) .room-map-card {
+    grid-column: auto;
+  }
+  :root:not([data-launcher-theme='vgui2']) .room-map-caption {
+    padding: 14px;
+    background: linear-gradient(0deg, #080c12ef, #10171c80 65%, transparent);
+    overflow-wrap: anywhere;
+  }
+  :root:not([data-launcher-theme='vgui2']) .room-map-caption h2 {
+    font-size: 28px;
+  }
+}
 @container (max-width: 800px) {
   .room-main-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -225,6 +241,7 @@
     grid-column: 1/-1;
     min-height: 110px;
   }
+  :root:not([data-launcher-theme='vgui2']) .room-map-caption,
   .room-map-caption {
     min-height: 110px;
     padding: 12px 16px;

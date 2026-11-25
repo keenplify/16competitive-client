@@ -2,7 +2,6 @@
 
 use crate::native_bundle::NativeBundle;
 use crate::persistent_native::{clear_verified_readonly, repair_io_error, replace_metadata, replace_owned, verify_owned};
-use goblin::pe::PE;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -133,19 +132,27 @@ pub(crate) fn write_new(path: &Path, bytes: &[u8]) -> Result<(), String> {
 }
 
 fn client_exports(bytes: &[u8]) -> Option<HashSet<&str>> {
-    let Ok(pe) = PE::parse(bytes) else {
-        return None;
-    };
-    if pe.header.coff_header.machine != 0x14c || !pe.is_lib {
+    use object::{pe, read::pe::PeFile32, LittleEndian as LE};
+
+    // Inspect the export directory directly: some working GoldSrc clients have
+    // no DOS stub, or carry optional metadata unrelated to their callback ABI.
+    let image = PeFile32::parse(bytes).ok()?;
+    let header = &image.nt_headers().file_header;
+    if header.machine.get(LE) != pe::IMAGE_FILE_MACHINE_I386
+        || header.characteristics.get(LE) & pe::IMAGE_FILE_DLL == 0
+    {
         return None;
     }
-    Some(
-        pe.exports
-            .iter()
-            .filter(|export| export.reexport.is_none() && export.rva != 0)
-            .filter_map(|export| export.name)
-            .collect(),
-    )
+    let table = image.export_table().ok()??;
+    let mut names = HashSet::new();
+    for (pointer, index) in table.name_iter() {
+        let address = table.address_by_index(u32::from(index)).ok()?;
+        if address != 0 && !table.is_forward(address) {
+            let name = table.name_from_pointer(pointer).ok()?;
+            names.insert(std::str::from_utf8(name).ok()?);
+        }
+    }
+    Some(names)
 }
 
 fn supported_client(bytes: &[u8]) -> bool {
@@ -759,6 +766,17 @@ mod tests {
         fs::remove_file(dir.join("client.dll")).unwrap();
         assert!(supports_config_authenticated_launch(&root).is_err());
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn exports_work_with_no_dos_stub() {
+        let required: Vec<String> = serde_json::from_str(include_str!(
+            "../../src/shared/windows-client-exports.json"
+        )).unwrap();
+        let mut bytes = client_fixture(&required);
+        bytes.copy_within(0x80..0x200, 0x40);
+        bytes[0x3c..0x40].copy_from_slice(&0x40u32.to_le_bytes());
+        assert!(supported_client(&bytes));
     }
 
     #[test]
