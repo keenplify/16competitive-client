@@ -47,7 +47,7 @@ export interface AuthCredentials {
 }
 
 export interface RegistrationCredentials extends AuthCredentials {
-  email: string
+  email?: string
 }
 
 export interface AuthPlayer {

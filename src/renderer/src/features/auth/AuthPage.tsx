@@ -66,6 +66,7 @@ export function AuthPage({ partnerSignInOnly = false }: { partnerSignInOnly?: bo
   const setupCompletionPhase = useOnboardingStore((state) => state.completionPhase)
   const helperAccountId = useWebHelperPromptStore((state) => state.accountId)
   const brandingResolved = usePartnerBrandingStore(state => state.resolved)
+  const disableEmailCollection = usePartnerBrandingStore(s => !!(s.branding?.disableEmailCollection || s.joinedBranding?.disableEmailCollection))
   const hideNativeHelperSetup = usePartnerBrandingStore(state => state.branding?.hideNativeHelperSetup === true)
   const helperOnboardingOpen = useWebHelperPromptStore((state) => state.onboardingOpen)
   const resetOnboarding = useOnboardingStore((state) => state.reset)
@@ -478,7 +479,7 @@ export function AuthPage({ partnerSignInOnly = false }: { partnerSignInOnly?: bo
                     className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
                     onChange={(event) => setUsername(event.target.value)}
                   />
-                  {(!isLogin || socialPollToken) && (
+                  {(socialPollToken || (!isLogin && brandingResolved && !disableEmailCollection)) && (
                     <TextField
                       id="email"
                       label={t('auth.email')}

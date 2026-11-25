@@ -1,3 +1,4 @@
+import { usePartnerBrandingStore } from "../partner-branding/partner-branding.store"
 import { translate, useLanguageStore } from '../i18n/i18n'
 import { create } from 'zustand'
 import type { AuthSession, SocialAuthProvider } from '../../../../shared/auth'
@@ -138,6 +139,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   submit: async () => {
     const { email, mode, password, status, username } = get()
+    const { branding, joinedBranding } = usePartnerBrandingStore.getState()
+    const collectEmail = !branding?.disableEmailCollection && !joinedBranding?.disableEmailCollection
     if (status === 'submitting') return
 
     if (!usernamePattern.test(username)) {
@@ -152,7 +155,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     const normalizedEmail = email.trim()
     if (
-      mode === 'register' &&
+      mode === 'register' && collectEmail &&
       (normalizedEmail.length > 254 || !emailPattern.test(normalizedEmail))
     ) {
       set({ error: 'Enter a valid email address.' })
@@ -164,7 +167,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const session =
         mode === 'register'
-          ? await window.api.auth.register({ username, email: normalizedEmail, password })
+          ? await window.api.auth.register({ username, ...(collectEmail ? { email: normalizedEmail } : {}), password })
           : await window.api.auth.login({ username, password })
       set({
         session,

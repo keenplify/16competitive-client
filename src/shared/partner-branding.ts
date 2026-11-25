@@ -20,6 +20,7 @@ export interface PartnerBranding {
   partnerId: string
   customScoreboardEnabled?: boolean
   priorityPaymentMethod?: string | null
+  disableEmailCollection?: boolean
   hideNativeHelperSetup?: boolean
   desktopAppEnabled?: boolean
   appName?: string | null
@@ -188,6 +189,8 @@ export const parsePartnerBranding = (
     typeof value.customScoreboardEnabled !== 'boolean'
   )
     throw new Error('Invalid scoreboard setting.')
+  if (value.disableEmailCollection !== undefined && typeof value.disableEmailCollection !== "boolean")
+    throw new Error("Invalid partner email collection setting.")
   if (value.hideNativeHelperSetup !== undefined && typeof value.hideNativeHelperSetup !== 'boolean')
     throw new Error('Invalid native helper setup visibility.')
   if (value.desktopAppEnabled !== undefined && typeof value.desktopAppEnabled !== 'boolean')
@@ -245,6 +248,7 @@ export const parsePartnerBranding = (
       partnerId: value.partnerId,
       customScoreboardEnabled: value.customScoreboardEnabled !== false,
       ...(typeof value.priorityPaymentMethod === 'string' ? { priorityPaymentMethod: value.priorityPaymentMethod } : {}),
+      disableEmailCollection: value.disableEmailCollection === true,
       hideNativeHelperSetup: value.hideNativeHelperSetup === true,
       ...(value.hideCommunityChat !== undefined
         ? { hideCommunityChat: value.hideCommunityChat as boolean }

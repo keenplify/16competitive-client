@@ -6,6 +6,7 @@ import { TextField } from '../../components/ui/TextField'
 import type { EmailPreferenceAction } from '../../../../shared/email-preference'
 import { useAuthStore } from './auth.store'
 import { useTranslation } from '../i18n/i18n'
+import { usePartnerBrandingStore } from "../partner-branding/partner-branding.store"
 import { loadEmail, useEmailStore } from './email.store'
 import copy from './email-copy.json'
 
@@ -88,7 +89,8 @@ function VerifyDialog({ owner, initialEmail }: { owner: string; initialEmail: st
 
 export function EmailPrompt({ partnerOnly }: { partnerOnly: boolean }): JSX.Element | null {
   const session = useAuthStore(s => s.session)
-  const owner = session && !session.player.requiresUsernameSetup && !session.partnerLogin && !partnerOnly ? `${session.player.id}/${session.expiresAt}` : ''
+  const allowed = usePartnerBrandingStore(s => s.resolved && s.accountId === session?.player.id && !s.branding?.disableEmailCollection && !s.joinedBranding?.disableEmailCollection)
+  const owner = allowed && session && !session.player.requiresUsernameSetup && !session.partnerLogin && !partnerOnly ? `${session.player.id}/${session.expiresAt}` : ''
   const state = useEmailStore()
   useEffect(() => { void loadEmail(owner, true) }, [owner])
   return owner && owner === state.owner && state.open && state.data

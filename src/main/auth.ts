@@ -140,7 +140,7 @@ const validateCredentials = (
     throw new Error('Password must be 8–128 characters')
   }
 
-  if (action === 'register') {
+  if (action === 'register' && email !== undefined) {
     if (typeof email !== 'string' || email.length > 254 || !EMAIL_PATTERN.test(email)) {
       throw new Error('Enter a valid email address')
     }
