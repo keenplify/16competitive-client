@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { LoadoutGameSwitch } from '../skins/LoadoutGameSwitch'
 import { useLoadoutGameStore } from '../skins/loadout-game.store'
 import { supportsWeapon } from '../../../../shared/game-version'
@@ -86,7 +87,7 @@ export function InventoryTile({
     </div>
   )
 }
-export function InventoryPage() {
+export function InventoryPage({ toolbarTarget }: { toolbarTarget: HTMLElement | null }) {
   const game = useLoadoutGameStore((s) => s.game)
   const state = useInventoryStore()
   const t = useInventoryText()
@@ -101,7 +102,8 @@ export function InventoryPage() {
   const showStickers = ['all', 'stickers'].includes(state.filter)
   return (
     <section className="min-h-[560px] py-6" aria-label={t('inventory')}>
-      <LoadoutGameSwitch disabled={state.pending || state.editing} className="mb-4" />
+      {toolbarTarget &&
+        createPortal(<LoadoutGameSwitch disabled={state.pending || state.editing} />, toolbarTarget)}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2" role="group" aria-label={t('inventory')}>
           {(['all', 'stickers', 'consumables'] as const).map((filter) => (

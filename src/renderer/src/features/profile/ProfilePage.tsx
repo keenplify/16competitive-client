@@ -64,7 +64,7 @@ export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
                 else setTab(next)
               }}
             />
-            {visibleTab === 'skins' && own && !playerId && (
+            {(visibleTab === 'skins' || visibleTab === 'inventory') && own && !playerId && (
               <div ref={setToolbarTarget} className="flex min-h-8 shrink-0 items-center pb-1" />
             )}
           </div>
@@ -104,7 +104,7 @@ export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
         ) : visibleTab === 'skins' ? (
           <SkinsPage toolbarTarget={toolbarTarget} />
         ) : visibleTab === 'inventory' ? (
-          <InventoryPage />
+          <InventoryPage toolbarTarget={toolbarTarget} />
         ) : visibleTab === 'matches' ? (
           <MatchHistoryPage showHeader={false} />
         ) : (

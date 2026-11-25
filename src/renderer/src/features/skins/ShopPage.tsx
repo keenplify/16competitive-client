@@ -22,6 +22,7 @@ import previewTranslations from './skin-preview-translations.json'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import {
   ExternalLink,
+  FilterX,
   LoaderCircle,
   LockKeyhole,
   Search,
@@ -654,20 +655,22 @@ export function ShopPage(): JSX.Element {
               className="shop-sidebar sticky self-start border border-white/10 bg-neutral-950/75 p-3"
             >
               <div className="shop-filter-search shrink-0 pb-3">
-                <div className="flex items-center justify-between gap-3 px-1 pb-2">
+                <div className="flex min-h-10 items-center justify-between gap-3 px-1 pb-2">
                   <div>
                     <p className="text-[10px] font-black tracking-[0.18em] text-neutral-500 uppercase">
                       {filterText.filters}
                     </p>
                   </div>
                   {hasActiveFilters && (
-                    <button
-                      type="button"
-                      className="text-[10px] font-bold tracking-wide text-sky-300 uppercase transition hover:text-sky-200"
+                    <Button
+                      variant="ghost"
+                      aria-label={filterText.clear}
+                      title={filterText.clear}
+                      className="size-8 shrink-0 p-2 text-sky-300"
                       onClick={clearFilters}
                     >
-                      {filterText.clear}
-                    </button>
+                      <FilterX className="size-4" aria-hidden="true" />
+                    </Button>
                   )}
                 </div>
 

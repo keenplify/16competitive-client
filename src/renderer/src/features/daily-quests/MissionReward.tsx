@@ -46,19 +46,9 @@ export function MissionReward({
         : `${reward.amount.toLocaleString()} ${t('mission.points')}`
   const displayLabel =
     compact && (reward.type === 'SKIN' || reward.type === 'STICKER') ? `×${reward.amount}` : label
-  return (
-    <Button
-      variant="ghost"
-      title={t('mission.viewReward', { reward: label })}
-      aria-label={t('mission.viewReward', { reward: label })}
-      onClick={() => {
-        onOpen?.()
-        const navigation = useNavigationStore.getState()
-        if (reward.type === 'STICKER') navigation.openStickerStore(reward.name)
-        else navigation.navigate('store')
-      }}
-      className={twMerge('flex h-10 w-36 shrink-0 items-center gap-2 p-0', className)}
-    >
+  const rewardClass = twMerge('flex h-10 w-36 shrink-0 items-center gap-2', className)
+  const content = (
+    <>
       <div className="size-10 shrink-0 overflow-hidden" aria-hidden="true">
         {reward.type === 'POINTS' || reward.type === 'P_CASH' ? (
           <CurrencyIcon currency={reward.type} className="size-10" />
@@ -82,6 +72,23 @@ export function MissionReward({
       <span className="whitespace-nowrap text-xs font-semibold leading-4 text-amber-200">
         {displayLabel}
       </span>
+    </>
+  )
+  if (reward.type === 'POINTS') return <div className={rewardClass}>{content}</div>
+  return (
+    <Button
+      variant="ghost"
+      title={t('mission.viewReward', { reward: label })}
+      aria-label={t('mission.viewReward', { reward: label })}
+      onClick={() => {
+        onOpen?.()
+        const navigation = useNavigationStore.getState()
+        if (reward.type === 'STICKER') navigation.openStickerStore(reward.name)
+        else navigation.navigate('store')
+      }}
+      className={twMerge(rewardClass, 'h-auto px-2 py-1')}
+    >
+      {content}
     </Button>
   )
 }
