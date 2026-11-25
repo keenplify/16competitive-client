@@ -34,7 +34,10 @@ interface CollectionsState {
   buyItem: (id: string, currency: SkinCurrency) => Promise<void>
 }
 const errorNotice = (error: unknown): Notice => {
-  const text = error instanceof Error ? error.message : ''
+  const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined
+  const text = [code, error instanceof Error ? error.message : '']
+    .filter((part) => typeof part === 'string')
+    .join(' ')
   if (/INSUFFICIENT/.test(text)) return 'insufficient'
   if (/QUOTE_CHANGED/.test(text)) return 'changed'
   if (/ALREADY_OWNED/.test(text)) return 'owned'
@@ -161,9 +164,8 @@ export const useCollectionsStore = create<CollectionsState>((set, get) => ({
       // Known rejection means no charge; transport uncertainty retains the key.
       set({
         notice,
-        ...(notice !== 'error'
-          ? { request: null, confirmation: false, quote: null, quoteStatus: 'error' as const }
-          : {})
+        confirmation: false,
+        ...(notice !== 'error' ? { request: null, quote: null, quoteStatus: 'error' as const } : {})
       })
     } finally {
       if (generation === accountGeneration) set({ buying: false })

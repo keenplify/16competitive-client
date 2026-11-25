@@ -64,17 +64,23 @@ export function CollectionPage() {
   const state = useCollectionsStore()
   const t = useCollectionText()
   const [item, setItem] = useState<{ skin: Skin; currency: SkinCurrency } | null>(null)
-  const fundsNotice = state.notice === 'insufficient' ? t('insufficient') : null
+  const notice = state.buying ? 'pending' : state.notice
+  const message = notice ? t(notice) : null
   useEffect(() => {
-    if (!fundsNotice) return
-    const id = toast.error(
-      fundsMessage(fundsNotice, () => toast.dismiss(id)),
-      { autoClose: false }
-    )
+    if (!notice || !message) return
+    const hasTopUp = notice === 'error' || notice === 'insufficient'
+    const id =
+      notice === 'pending'
+        ? toast.loading(message)
+        : toast(hasTopUp ? fundsMessage(message, () => toast.dismiss(id)) : message, {
+            type: notice === 'success' || notice === 'owned' ? 'success' : 'error',
+            autoClose: hasTopUp ? false : 5000,
+            closeOnClick: !hasTopUp
+          })
     return () => {
       toast.dismiss(id)
     }
-  }, [fundsNotice])
+  }, [notice, message])
   const collection = state.detail?.collection
   const uncertain = state.request?.id === state.selectedId
   return (
@@ -188,20 +194,9 @@ export function CollectionPage() {
                   {state.buying ? (
                     <LoaderCircle className="size-4 animate-spin" aria-label={t('pending')} />
                   ) : (
-                    t('buyPackage')
+                    t(uncertain ? 'retry' : 'buyPackage')
                   )}
                 </Button>
-                <div className="text-sm leading-6" role="status">
-                  <p
-                    className={
-                      state.notice === 'success' || state.notice === 'owned'
-                        ? 'text-emerald-300'
-                        : 'text-amber-200'
-                    }
-                  >
-                    {state.notice && !fundsNotice ? t(state.notice) : ''}
-                  </p>
-                </div>
               </section>
             </div>
             <h2 className="mb-4 text-xl font-semibold">{t('individual')}</h2>
@@ -226,7 +221,6 @@ export function CollectionPage() {
             confirmLabel={t('confirm')}
             closeLabel={t('cancel')}
             busy={state.buying}
-            error={state.notice && !fundsNotice ? t(state.notice) : undefined}
             onClose={() => {
               state.confirm(false)
               setItem(null)
