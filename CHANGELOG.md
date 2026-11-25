@@ -5239,3 +5239,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Outdated helper installations now recognize released native versions.
 - Download options are offered when an outdated helper is detected.
+
+## v2026.1126.2 — 2026-11-25
+
+### Game launching
+
+- Added support for stock WON launches with partner engines.
+- Added a retry option when the launch helper needs to be restarted.
+
+### Collection purchases
+
+- Added a top-up action when collection purchases cannot be confirmed.
+
+### Launcher protection
+
+- Renamed the launcher guard branding to PGUARD.
