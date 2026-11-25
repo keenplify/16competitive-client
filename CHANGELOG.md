@@ -1,5 +1,9 @@
 # Changelog
 
+## v2026.1125.10
+
+- Partners can turn off optional email collection and promotional email prompts in their community settings.
+
 ## v2026.1125.8
 
 - Winter FFA kill notices now show the snowball or powerup that landed the killing hit.
