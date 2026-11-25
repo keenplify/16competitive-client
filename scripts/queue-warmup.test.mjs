@@ -1017,7 +1017,7 @@ test('MR8 results share the lobby with friends and dismiss without changing the 
     }
     dependencies[name] = values
   }
-  const context = vm.createContext({})
+  const context = vm.createContext({ document: { querySelector: () => null } })
   const module = new vm.SourceTextModule(
     ts.transpileModule(source, {
       compilerOptions: {
