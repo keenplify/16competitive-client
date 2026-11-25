@@ -223,7 +223,8 @@ export function ShopPage(): JSX.Element {
   const [buyingId, setBuyingId] = useState<string | null>(null)
   const [purchaseSkin, setPurchaseSkin] = useState<Skin | null>(null)
   const [previewSkin, setPreviewSkin] = useState<Skin | null>(null)
-  const [showRedeemCode, setShowRedeemCode] = useState(false)
+  const [initialCode, setInitialCode] = useState(() => sessionStorage.getItem('store-promo-code') ?? '')
+  const [showRedeemCode, setShowRedeemCode] = useState(!!initialCode)
   const [showWithdraw, setShowWithdraw] = useState(false)
   const [withdrawAvailability, setWithdrawAvailability] = useState<{
     ownerId: string
@@ -879,7 +880,7 @@ export function ShopPage(): JSX.Element {
       {showRedeemCode && (
         <>
           <RedeemCodeModal
-            onClose={() => setShowRedeemCode(false)}
+            initialCode={initialCode} onClose={() => { sessionStorage.removeItem('store-promo-code'); setInitialCode(''); setShowRedeemCode(false) }}
             onRedeemed={refreshOwnedSkins}
           />
         </>

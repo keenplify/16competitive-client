@@ -218,6 +218,12 @@ export function LobbyPage(): JSX.Element {
       : t('directory.title')
   const playView = useCustomGamesStore((state) => state.playView)
   const navigate = useNavigationStore((state) => state.navigate)
+  useEffect(() => {
+    if (sessionStorage.getItem('store-promo-code')) {
+      useCollectionsStore.getState().close()
+      navigate('store')
+    }
+  }, [navigate])
   const setProfileTab = useNavigationStore((state) => state.setProfileTab)
   const requiresGameSetup = useGameSettingsStore(
     (state) => !isWebRuntime() && state.requiresGameSetup

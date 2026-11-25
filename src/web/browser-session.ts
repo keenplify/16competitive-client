@@ -76,6 +76,24 @@ window.addEventListener?.('storage', (event: StorageEvent) => {
 
 const consumeHandoff = async (): Promise<void> => {
   const url = new URL(window.location.href)
+  const promoCode = url.searchParams.get('redeem')
+  if (promoCode && /^[A-Z0-9][A-Z0-9_-]{2,63}$/.test(promoCode)) {
+    sessionStorage.setItem('store-promo-code', promoCode)
+    const ticket = new URLSearchParams(url.hash.slice(1)).get('promo-login')
+    url.searchParams.delete('redeem')
+    url.hash = ''
+    history.replaceState({}, '', url.pathname + url.search)
+    if (!sessionToken && ticket && /^[a-f0-9]{64}$/.test(ticket)) {
+      try {
+        const response = await fetch(new URL('/auth/promo-login', location.origin), {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({token:ticket}), signal: AbortSignal.timeout(10000)
+        })
+        const data = response.ok ? await response.json() as {token?:unknown} : null
+        if (typeof data?.token === 'string') setWebSessionToken(data.token)
+      } catch { /* Keep the Store code for normal sign-in if the ticket cannot be exchanged. */ }
+    }
+  }
   const token = url.searchParams.get('handoff')
   const selectedNode = url.searchParams.get('selectedNode')
   if (selectedNode === 'automatic') localStorage.removeItem(SELECTED_NODE_KEY)

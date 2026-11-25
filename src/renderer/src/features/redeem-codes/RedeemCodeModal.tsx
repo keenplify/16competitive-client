@@ -11,11 +11,11 @@ import { useTranslation } from '../i18n/i18n'
 import { ensureStickerArtwork, useInventoryStore } from '../inventory/inventory.store'
 import translations from './redeem-translations.json'
 
-export function RedeemCodeModal({ onClose, onRedeemed }: { onClose: () => void; onRedeemed: () => void | Promise<void> }): JSX.Element {
+export function RedeemCodeModal({ onClose, onRedeemed, initialCode = '' }: { initialCode?:string; onClose: () => void; onRedeemed: () => void | Promise<void> }): JSX.Element {
   const { language } = useTranslation()
   const text = translations[language]
   const input = useRef<HTMLInputElement>(null)
-  const [code, setCode] = useState('')
+  const [code, setCode] = useState(initialCode)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<RedeemCodeResult | null>(null)
