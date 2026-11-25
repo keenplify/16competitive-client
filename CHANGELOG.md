@@ -5168,3 +5168,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Partner Branding
 
 - Improved compatibility for partner branding when payment priority is unavailable.
+
+## v2026.1125.5 — 2026-11-25
+
+### Play
+
+- The preferred region selector has more space for Automatic and the ping indicator.
+- Custom room mode pickers respect the partner's visibility settings, including Winter FFA.
+- Play tabs, the region selector, and room actions stay visible while scrolling. Chat scrolls within a bounded panel, and Leave has an exit icon.
