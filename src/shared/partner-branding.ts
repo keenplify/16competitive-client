@@ -244,7 +244,7 @@ export const parsePartnerBranding = (
         : {}),
       partnerId: value.partnerId,
       customScoreboardEnabled: value.customScoreboardEnabled !== false,
-      priorityPaymentMethod: typeof value.priorityPaymentMethod === 'string' ? value.priorityPaymentMethod : null,
+      ...(typeof value.priorityPaymentMethod === 'string' ? { priorityPaymentMethod: value.priorityPaymentMethod } : {}),
       hideNativeHelperSetup: value.hideNativeHelperSetup === true,
       ...(value.hideCommunityChat !== undefined
         ? { hideCommunityChat: value.hideCommunityChat as boolean }
