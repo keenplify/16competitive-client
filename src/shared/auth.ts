@@ -12,6 +12,7 @@ export const AUTH_CHANNELS = {
   discordNotificationsSet: 'auth:discord-notifications-set',
   discordNotificationsTest: 'auth:discord-notifications-test',
   socialConnect: 'auth:social-connect',
+  emailPreference: 'auth:email-preference',
   usernameCheck: 'auth:username-check',
   usernameChange: 'auth:username-change',
   referralStatus: 'auth:referral-status',
@@ -170,6 +171,7 @@ export interface AuthApi {
   setDiscordNotifications(enabled: boolean): Promise<DiscordNotificationStatus>
   testDiscordNotifications(): Promise<{ sent: true }>
   connectSocial(provider: SocialAuthProvider): Promise<SocialConnections>
+  emailPreference(action: import('./email-preference').EmailPreferenceAction): Promise<import('./email-preference').EmailPreference>
   checkUsername(username: string): Promise<UsernameAvailability>
   changeUsername(username: string): Promise<UsernameChangeResult>
   getReferralStatus(): Promise<ReferralStatus>

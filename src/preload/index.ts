@@ -105,6 +105,7 @@ const auth: AuthApi = {
     ipcRenderer.invoke(AUTH_CHANNELS.discordNotificationsSet, enabled),
   testDiscordNotifications: () => ipcRenderer.invoke(AUTH_CHANNELS.discordNotificationsTest),
   connectSocial: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.socialConnect, provider),
+  emailPreference: (action) => ipcRenderer.invoke(AUTH_CHANNELS.emailPreference, action),
   checkUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameCheck, username),
   changeUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameChange, username),
   getReferralStatus: () => ipcRenderer.invoke(AUTH_CHANNELS.referralStatus),

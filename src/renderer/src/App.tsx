@@ -6,6 +6,7 @@ import { MatchDetailsOverlay } from './features/profile/MatchDetailsOverlay'
 import { ProfileOverlay } from './features/profile/ProfileOverlay'
 import { CommunityMembershipController } from './features/partner-branding/CommunityMembershipController'
 import { MatchAssetPreparation } from './features/matchmaking/MatchAssetPreparation'
+import { EmailPrompt } from './features/auth/EmailPrompt'
 import { AuthPage } from './features/auth/AuthPage'
 import { IcafeBranchPanel } from './features/auth/IcafeBranchPanel'
 import { AntiCheatMatchCancellationNotice } from './features/anticheat/AntiCheatMatchCancellationNotice'
@@ -76,6 +77,7 @@ function App({ preserveMusic = false, partnerSignInOnly = false }: {
           />
         </ModalToastLayer>
         <AuthPage partnerSignInOnly={partnerSignInOnly} />
+        <EmailPrompt partnerOnly={partnerSignInOnly} />
         <PCashTopUpModal />
         <ProfileOverlay />
         <MatchDetailsOverlay />

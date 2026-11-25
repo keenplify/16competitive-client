@@ -265,6 +265,7 @@ import {
   startCustomGame,
   updateCustomGame
 } from './custom-games'
+import { emailPreference } from './email-preference'
 import { redeemCode } from './redeem-codes'
 import { DIAGNOSTIC_LOG_CHANNELS } from '../shared/diagnostic-logs'
 import {
@@ -1011,6 +1012,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(AUTH_CHANNELS.socialConnect, (_, provider: unknown) =>
     withAuthFocus(connectSocial(provider))
   )
+  ipcMain.handle(AUTH_CHANNELS.emailPreference, (_, action: unknown) => emailPreference(action))
   ipcMain.handle(AUTH_CHANNELS.usernameCheck, (_, username: unknown) => checkUsername(username))
   ipcMain.handle(AUTH_CHANNELS.usernameChange, (_, username: unknown) => changeUsername(username))
   ipcMain.handle(AUTH_CHANNELS.referralStatus, () => getReferralStatus())

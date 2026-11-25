@@ -1,3 +1,4 @@
+import { parseEmailPreference } from '../shared/email-preference'
 import type { PartnerLoginContext } from '../shared/auth'
 import { hasIncomingPartnerLogin } from './partner-login-capture'
 import { partnerReturnUrl } from './partner-return'
@@ -463,6 +464,12 @@ export const browserAuthApi: AuthApi = {
 
   async connectSocial(provider) {
     return beginSocial(provider, true) as Promise<SocialConnections>
+  },
+
+  async emailPreference(action) {
+    return parseEmailPreference(await requestJson('/auth/email-preference', {
+      authenticated: true, init: { method: 'POST', body: JSON.stringify(action) }
+    }))
   },
 
   async checkUsername(username) {

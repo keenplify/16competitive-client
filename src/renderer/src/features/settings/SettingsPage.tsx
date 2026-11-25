@@ -46,6 +46,7 @@ import { useTranslation } from '../i18n/i18n'
 import { useGameSettingsStore } from './game-settings.store'
 import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
 import { isWebRuntime } from '../../web-runtime'
+import { EmailSettings } from '../auth/EmailPrompt'
 import { DiscordNotificationSettings } from './DiscordNotificationSettings'
 import { useNavigationStore } from '../navigation/navigation.store'
 
@@ -1004,6 +1005,7 @@ export function SettingsPage(): JSX.Element {
                 className="scroll-mt-6"
                 aria-label={t('settings.discord.title')}
               >
+                <EmailSettings />
                 <MatchNotificationSettings />
                 <DiscordNotificationSettings
                   connected={socialConnections?.discord.connected === true}
