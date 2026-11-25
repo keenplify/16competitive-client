@@ -5207,3 +5207,23 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Email verification status is shared between the web app and launcher.
 - Optional promotional email preferences are now shared across both platforms.
+
+## v2026.1125.11 — 2026-11-25
+
+### Community Chat
+
+- Updated community and party chat experience.
+- Refined community links and directory presentation.
+
+### Match Results
+
+- Applied AFK-related result settings to matchmaking outcomes.
+
+### Payments
+
+- Improved checkout preferences for PCash top-ups.
+- Updated manual and PCash top-up flows.
+
+### Branding
+
+- Updated partner branding and community identity across the client.
