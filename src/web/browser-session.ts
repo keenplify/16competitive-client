@@ -83,8 +83,16 @@ const consumeHandoff = async (): Promise<void> => {
     url.searchParams.delete('redeem')
     url.hash = ''
     history.replaceState({}, '', url.pathname + url.search)
-    if (!sessionToken && ticket && /^[a-f0-9]{64}$/.test(ticket)) {
+    if (ticket && /^[a-f0-9]{64}$/.test(ticket) && !hasIncomingPartnerLogin()) {
       try {
+        const previous = sessionToken
+        if (previous) {
+          const existing = await fetch(new URL('/auth/session', location.origin), {
+            headers: {authorization:'Bearer '+previous}, signal: AbortSignal.timeout(10000)
+          })
+          if (existing.status !== 401 || sessionToken !== previous) return
+          clearWebSessionToken()
+        }
         const response = await fetch(new URL('/auth/promo-login', location.origin), {
           method: 'POST', headers: { 'content-type': 'application/json' },
           body: JSON.stringify({token:ticket}), signal: AbortSignal.timeout(10000)
