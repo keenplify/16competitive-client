@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type JSX, type MouseEvent
 import {
   HelpCircle,
   LockKeyhole,
+  LogOut,
   Play,
   Plus,
   RefreshCw,
@@ -442,10 +443,11 @@ export function CustomGamesPanel({
                 )}
                 <Button
                   variant="secondary"
-                  className="h-10 px-4"
+                  className="h-10 gap-2 px-4"
                   disabled={busy || (owner && !editable)}
                   onClick={() => void runAction(leaveRoom)}
                 >
+                  <LogOut className="size-4 shrink-0" aria-hidden="true" />
                   {t('roomLobby.leave')}
                 </Button>
                 {editable && (

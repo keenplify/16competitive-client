@@ -17,6 +17,7 @@
 }
 .room-bottom-grid {
   margin-top: 12px;
+  align-items: stretch;
   grid-template-columns: minmax(0, 1.72fr) minmax(0, 1fr);
 }
 .room-map-card {
@@ -93,7 +94,7 @@
 .room-chat-dock {
   align-self: stretch;
   min-width: 0;
-  min-height: 16rem;
+  height: clamp(16rem, 30vh, 20rem);
 }
 :root[data-launcher-theme='vgui2'] .custom-room-board {
   --vgui-face: #283848;
