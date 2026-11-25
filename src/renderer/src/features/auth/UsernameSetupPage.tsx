@@ -1,6 +1,7 @@
 import { useTranslation } from '../i18n/i18n'
 import { useEffect, useState, type FormEvent, type JSX } from 'react'
 import { CheckCircle2, LoaderCircle, XCircle } from 'lucide-react'
+import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
 import { SetupCard } from '../../components/ui/SetupCard'
 import { TextField } from '../../components/ui/TextField'
@@ -13,7 +14,6 @@ export function UsernameSetupPage(): JSX.Element {
   const session = useAuthStore((state) => state.session)
   const status = useAuthStore((state) => state.status)
   const error = useAuthStore((state) => state.error)
-  const checkUsername = useAuthStore((state) => state.checkUsername)
   const changeUsername = useAuthStore((state) => state.changeUsername)
   const logout = useAuthStore((state) => state.logout)
   const partnerUsername = session?.player.partnerUsername
@@ -30,21 +30,37 @@ export function UsernameSetupPage(): JSX.Element {
 
     let cancelled = false
     const timer = setTimeout(() => {
-      void checkUsername(username).then((available) => {
-        if (!cancelled) setAvailability(available ? 'available' : 'taken')
-      })
+      void window.api.auth.checkUsername(username).then(
+        ({ available }) => {
+          if (!cancelled) setAvailability(available ? 'available' : 'taken')
+        },
+        () => {
+          if (!cancelled) setAvailability('idle')
+        }
+      )
     }, 350)
 
     return () => {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [checkUsername, username, usernameIsValid])
+  }, [username, usernameIsValid])
 
   const submit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
-    if (displayedAvailability !== 'available' || status === 'changing_username') return
-    void changeUsername(username)
+    if (!usernameIsValid || displayedAvailability === 'taken' || status === 'changing_username')
+      return
+    const feedback = toast.loading(t('auth.username.saving'))
+    void changeUsername(username).then((saved) => {
+      toast.update(feedback, {
+        render: saved
+          ? t('auth.username.saved')
+          : (useAuthStore.getState().error ?? t('auth.steam.error')),
+        type: saved ? 'success' : 'error',
+        isLoading: false,
+        autoClose: 3500
+      })
+    })
   }
 
   return (
@@ -80,6 +96,7 @@ export function UsernameSetupPage(): JSX.Element {
                   variant="secondary"
                   disabled={status === 'changing_username'}
                   onClick={() => {
+                    if (username === suggestion) return
                     setUsername(suggestion)
                     setAvailability('checking')
                   }}
@@ -130,7 +147,9 @@ export function UsernameSetupPage(): JSX.Element {
 
         <Button
           type="submit"
-          disabled={displayedAvailability !== 'available' || status === 'changing_username'}
+          disabled={
+            !usernameIsValid || displayedAvailability === 'taken' || status === 'changing_username'
+          }
         >
           {status === 'changing_username' ? 'Saving username…' : 'Continue'}
         </Button>

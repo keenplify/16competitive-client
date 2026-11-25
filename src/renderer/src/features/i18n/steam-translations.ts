@@ -1,5 +1,7 @@
 export const steamTranslations = {
   en: {
+    'auth.username.saving': 'Saving username…',
+    'auth.username.saved': 'Username saved.',
     'auth.steam.link': 'Link Steam',
     'auth.steam.signIn': 'Sign in with Steam',
     'auth.steam.waiting':
@@ -17,6 +19,8 @@ export const steamTranslations = {
       'Could not link Steam. Try again. A Steam account linked to another player cannot be linked here.'
   },
   ru: {
+    'auth.username.saving': 'Сохранение имени…',
+    'auth.username.saved': 'Имя сохранено.',
     'auth.steam.link': 'Привязать Steam',
     'auth.steam.signIn': 'Войти через Steam',
     'auth.steam.waiting':
@@ -34,6 +38,8 @@ export const steamTranslations = {
       'Не удалось привязать Steam. Повторите попытку. Аккаунт Steam, привязанный к другому игроку, нельзя привязать здесь.'
   },
   tl: {
+    'auth.username.saving': 'Sine-save ang username…',
+    'auth.username.saved': 'Na-save ang username.',
     'auth.steam.link': 'I-link ang Steam',
     'auth.steam.signIn': 'Mag-sign in gamit ang Steam',
     'auth.steam.waiting':
@@ -51,6 +57,8 @@ export const steamTranslations = {
       'Hindi ma-link ang Steam. Subukan ulit. Hindi puwedeng i-link dito ang Steam account na naka-link na sa ibang player.'
   },
   th: {
+    'auth.username.saving': 'กำลังบันทึกชื่อผู้ใช้…',
+    'auth.username.saved': 'บันทึกชื่อผู้ใช้แล้ว',
     'auth.steam.link': 'เชื่อม Steam',
     'auth.steam.signIn': 'เข้าสู่ระบบด้วย Steam',
     'auth.steam.waiting':
@@ -68,6 +76,8 @@ export const steamTranslations = {
       'เชื่อม Steam ไม่สำเร็จ โปรดลองอีกครั้ง บัญชี Steam ที่เชื่อมกับผู้เล่นอื่นแล้วไม่สามารถเชื่อมที่นี่ได้'
   },
   id: {
+    'auth.username.saving': 'Menyimpan nama pengguna…',
+    'auth.username.saved': 'Nama pengguna disimpan.',
     'auth.steam.link': 'Tautkan Steam',
     'auth.steam.signIn': 'Masuk dengan Steam',
     'auth.steam.waiting':
@@ -85,6 +95,8 @@ export const steamTranslations = {
       'Tidak dapat menautkan Steam. Coba lagi. Akun Steam yang tertaut ke pemain lain tidak dapat ditautkan di sini.'
   },
   hi: {
+    'auth.username.saving': 'उपयोगकर्ता नाम सहेजा जा रहा है…',
+    'auth.username.saved': 'उपयोगकर्ता नाम सहेजा गया।',
     'auth.steam.link': 'Steam जोड़ें',
     'auth.steam.signIn': 'Steam से साइन इन करें',
     'auth.steam.waiting':
@@ -102,6 +114,8 @@ export const steamTranslations = {
       'Steam नहीं जुड़ सका। फिर कोशिश करें। किसी दूसरे खिलाड़ी से जुड़ा Steam खाता यहाँ नहीं जोड़ा जा सकता।'
   },
   pt: {
+    'auth.username.saving': 'Salvando nome de usuário…',
+    'auth.username.saved': 'Nome de usuário salvo.',
     'auth.steam.link': 'Vincular Steam',
     'auth.steam.signIn': 'Entrar com Steam',
     'auth.steam.waiting':
@@ -119,6 +133,8 @@ export const steamTranslations = {
       'Não foi possível vincular o Steam. Tente novamente. Uma conta Steam vinculada a outro jogador não pode ser vinculada aqui.'
   },
   ja: {
+    'auth.username.saving': 'ユーザー名を保存中…',
+    'auth.username.saved': 'ユーザー名を保存しました。',
     'auth.steam.link': 'Steamを連携',
     'auth.steam.signIn': 'Steamでログイン',
     'auth.steam.waiting':
