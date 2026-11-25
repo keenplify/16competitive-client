@@ -11,6 +11,7 @@ mod inspector;
 mod native_voice;
 mod stickers;
 mod session_mode;
+mod winter_feed;
 mod desktop_session;
 #[cfg(windows)]
 mod admin_restart;
@@ -166,6 +167,9 @@ fn helper_fingerprint() -> String {
         include_bytes!("native_voice/peer.rs").as_slice(),
         include_bytes!("stickers.rs").as_slice(),
         include_bytes!("session_mode.rs").as_slice(),
+        include_bytes!("winter_feed.rs").as_slice(),
+        include_bytes!("../assets/16cwfeed1.spr").as_slice(),
+        include_bytes!("../assets/cs16-stock-hud.txt").as_slice(),
         include_bytes!("desktop_session.rs").as_slice(),
         include_bytes!("admin_restart.rs").as_slice(),
         include_bytes!("launch-notices.json").as_slice(),
@@ -1136,6 +1140,19 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     let crosshair_commands = if cfg!(windows) && native.is_none() && gold_client {
         legacy_crosshair::commands(&preferences).map_err(|e| desktop_session::preparation_error(&e, "STARTUP_CONFIG_FAILED"))?
     } else { String::new() };
+    let winter_stamp = if connection.mode == "ffa" {
+        match winter_feed::install(&game_dir) {
+            Ok(()) => Some(format!("{:x}", Sha256::digest(connection.match_id.as_bytes()))[..8].to_owned()),
+            Err(reason) => {
+                eprintln!("Winter kill-feed icons unavailable: {reason}");
+                None
+            }
+        }
+    } else { None };
+    let mut crosshair_commands = crosshair_commands;
+    if let Some(stamp) = &winter_stamp {
+        crosshair_commands.push_str(&format!("\nsetinfo _wf {stamp}\n"));
+    }
     startup = if connection.game() == "cs16" && !next_client {
         Some(cs16_startup_file(&game_dir, connection, &crosshair_commands).map_err(|_| "STARTUP_CONFIG_FAILED")?)
     } else {
@@ -1212,6 +1229,9 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
                     .ok_or("Missing GoldClient managed flag")?,
             );
         }
+    }
+    if next_client {
+        if let Some(stamp) = &winter_stamp { command.args(["+setinfo", "_wf", stamp]); }
     }
     if connection.game() == "cs13" {
         command.args(game_pattern.windows_flags.as_deref().unwrap_or_default());
