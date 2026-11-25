@@ -1370,3 +1370,7 @@ When working in this repository:
 24. Document platform-specific behavior.
 25. When adding CS 1.3 or another game version, document verified differences instead of assuming CS 1.6 behavior.
 26. Never touch `config.cfg`. Do not read, write, create, replace, append, rename, delete, repair, seed, back up, restore, or otherwise manipulate it.
+
+## Production release source
+
+Commit and push every release input to its repository's GitHub default branch before deploying. For this repository, build and publish from a clean main checkout. Fetch origin and verify that HEAD matches the remote default branch immediately before the build and deployment. Check the deployed revision. Preserve any production changes that the release would overwrite and reconcile them on the default branch first.

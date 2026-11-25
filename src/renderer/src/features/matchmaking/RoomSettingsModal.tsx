@@ -6,18 +6,13 @@ import {
   roomModeChoice,
   type RoomModeChoice
 } from './winter-ffa-label'
-import { usePartnerGamePreferenceStore } from '../settings/partner-game-preference.store'
-import { gameForMode } from '../../../../shared/game-version'
 import { HelpTooltip } from '../../components/ui/HelpTooltip'
 import { ModalHeader } from '../../components/ui/ModalHeader'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useRef, useState, type JSX, type ReactNode } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
-import {
-  CUSTOM_GAME_MODES,
-  type CustomGameRoom
-} from '../../../../shared/custom-games'
+import { CUSTOM_GAME_MODES, type CustomGameRoom } from '../../../../shared/custom-games'
 import {
   formatLocalMinor,
   formatPCash,
@@ -28,7 +23,6 @@ import { Button } from '../../components/ui/Button'
 import { useTranslation } from '../i18n/i18n'
 import { useCustomGamesStore } from './custom-games.store'
 import { useMatchmakingStore } from './matchmaking.store'
-import { useHideDesktopOnlyFeatures } from '../community/links'
 
 const fieldClass =
   'h-11 w-full min-w-0 rounded-none border border-white/20 bg-black/45 px-3 text-sm text-white outline-none transition focus:border-sky-400 disabled:opacity-50'
@@ -62,8 +56,6 @@ export function RoomSettingsModal({
   disabled?: boolean
 }): JSX.Element {
   const { t, language } = useTranslation()
-  const preferredGame = usePartnerGamePreferenceStore((state) => state.game)
-  const hideDesktopOnlyFeatures = useHideDesktopOnlyFeatures()
   const close = useCustomGamesStore((state) => state.closeRoomSettings)
   const save = useCustomGamesStore((state) => state.updateRoom)
   const saving = useCustomGamesStore((state) => state.savingSettings)
@@ -84,13 +76,7 @@ export function RoomSettingsModal({
   const [customBetText, setCustomBetText] = useState('')
   const nameRef = useRef<HTMLInputElement>(null)
   const modes = roomModeChoices(
-    CUSTOM_GAME_MODES.filter(
-      (candidate) =>
-        candidate === room.mode ||
-        (enabledModes.includes(candidate) &&
-          (!preferredGame || gameForMode(candidate) === preferredGame) &&
-          (!hideDesktopOnlyFeatures || candidate !== 'cs13_3v3'))
-    ),
+    CUSTOM_GAME_MODES.filter((candidate) => enabledModes.includes(candidate)),
     maps
   )
   const selectedMode = backendMode(mode)

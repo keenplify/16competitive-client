@@ -44,28 +44,28 @@ export function CreateCustomGameModal({
   const createRoom = useCustomGamesStore((state) => state.createRoom)
   const error = useCustomGamesStore((state) => state.error)
   const [name, setName] = useState(t('customGames.defaultName'))
+  const availableModes = roomModeChoices(
+    CUSTOM_GAME_MODES.filter((mode) => enabledModes.includes(mode)),
+    maps
+  )
   const [mode, setMode] = useState<RoomModeChoice>(() => {
     const selected = useMatchmakingStore.getState().selectedMode
-    if (preferredGame && gameForMode(selected) !== preferredGame)
-      return (
-        CUSTOM_GAME_MODES.find(
-          (mode) => enabledModes.includes(mode) && gameForMode(mode) === preferredGame
-        ) ?? (preferredGame === 'cs13' ? 'cs13_3v3' : 'unrated')
-      )
-    return isCustomGameMode(selected) ? selected : 'unrated'
+    if (
+      isCustomGameMode(selected) &&
+      availableModes.includes(selected) &&
+      (!preferredGame || gameForMode(selected) === preferredGame)
+    )
+      return selected
+    return (
+      availableModes.find((choice) => gameForMode(backendMode(choice)) === preferredGame) ??
+      availableModes[0] ??
+      'unrated'
+    )
   })
   const [mapId, setMapId] = useState<string | null>(null)
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const availableModes = roomModeChoices(
-    CUSTOM_GAME_MODES.filter(
-      (candidate) =>
-        enabledModes.includes(candidate) &&
-        (!preferredGame || gameForMode(candidate) === preferredGame)
-    ),
-    maps
-  )
   // Catalog refreshes must never substitute a different mode for the draft.
   const selectedMode = backendMode(mode)
   const modeAvailable = availableModes.includes(mode)
