@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { ChatAnnouncements } from '../chat/ChatAnnouncements'
 import { ChatCommandPopover } from '../chat/ChatCommandPopover'
 import { isChatCommand, useChatCommandsStore } from '../chat/chat-commands.store'
@@ -135,10 +136,14 @@ export function PartyChat(): JSX.Element {
     y: number
   } | null>(null)
   useDismissibleMenu(Boolean(playerMenu), playerMenuRef, () => setPlayerMenu(null))
-  const [chatOpen, setChatOpen] = useState(true)
+  const chatDock = useCustomGamesStore((state) => state.chatDock)
+  const [floatingOpen, setChatOpen] = useState(true)
+  const chatOpen = Boolean(chatDock) || floatingOpen
   const [minimizedPing, setMinimizedPing] = useState<MinimizedChatPing | null>(null)
   const chatVisible =
-    page === 'lobby' || (page === 'play' && playView === 'custom' && Boolean(room))
+    Boolean(chatDock) ||
+    page === 'lobby' ||
+    (page === 'play' && playView === 'custom' && Boolean(room))
 
   const friendConversation = activeFriendId ? conversations[activeFriendId] : undefined
   const globalLanguageLabel =
@@ -276,7 +281,16 @@ export function PartyChat(): JSX.Element {
     followLatestRef.current = true
     const feed = feedRef.current
     if (feed) feed.scrollTop = feed.scrollHeight
-  }, [chatOpen, chatVisible, activeFriendId, chatTab, globalChatLanguage, roomId, communityId])
+  }, [
+    chatOpen,
+    chatVisible,
+    chatDock,
+    activeFriendId,
+    chatTab,
+    globalChatLanguage,
+    roomId,
+    communityId
+  ])
 
   useLayoutEffect(() => {
     const feed = feedRef.current
@@ -479,7 +493,7 @@ export function PartyChat(): JSX.Element {
         return
 
       event.preventDefault()
-      activate('chat')
+      if (!chatDock) activate('chat')
       inputRef.current.focus()
       const nextDraft = `${draft}${event.key}`
       if (activeFriendId) setFriendDraft(activeFriendId, nextDraft)
@@ -496,6 +510,7 @@ export function PartyChat(): JSX.Element {
     activate,
     activeFriendId,
     canSend,
+    chatDock,
     chatOpen,
     chatTab,
     chatVisible,
@@ -538,9 +553,8 @@ export function PartyChat(): JSX.Element {
 
   if (!chatVisible) return <></>
 
-  return (
+  const content = (
     <>
-      <ChatAnnouncements />
       {!chatOpen && minimizedPing && (
         <button
           type="button"
@@ -587,8 +601,8 @@ export function PartyChat(): JSX.Element {
         <aside
           className="lobby-chat-panel fixed bottom-4 left-4 z-[21] flex h-72 w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden border border-white/20 bg-black/75 text-white shadow-2xl backdrop-blur-sm"
           data-active={activeSurface === 'chat'}
-          onPointerDownCapture={() => activate('chat')}
-          onFocusCapture={() => activate('chat')}
+          onPointerDownCapture={() => !chatDock && activate('chat')}
+          onFocusCapture={() => !chatDock && activate('chat')}
         >
           <div className="shrink-0 border-b border-white/15 bg-black/50">
             <div className="flex min-w-0">
@@ -626,15 +640,17 @@ export function PartyChat(): JSX.Element {
                   </button>
                 ))}
               </div>
-              <button
-                type="button"
-                className="grid size-9 shrink-0 place-items-center text-neutral-500 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400"
-                onClick={() => setChatOpen(false)}
-                aria-label="Close chat"
-                title="Close chat"
-              >
-                <X className="size-4" aria-hidden="true" />
-              </button>
+              {!chatDock && (
+                <button
+                  type="button"
+                  className="grid size-9 shrink-0 place-items-center text-neutral-500 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400"
+                  onClick={() => setChatOpen(false)}
+                  aria-label="Close chat"
+                  title="Close chat"
+                >
+                  <X className="size-4" aria-hidden="true" />
+                </button>
+              )}
             </div>
             {openFriendIds.length > 0 && (
               <div
@@ -1014,6 +1030,12 @@ export function PartyChat(): JSX.Element {
           </button>
         </div>
       )}
+    </>
+  )
+  return (
+    <>
+      <ChatAnnouncements />
+      {chatDock ? createPortal(content, chatDock) : content}
     </>
   )
 }

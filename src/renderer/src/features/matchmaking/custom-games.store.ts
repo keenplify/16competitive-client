@@ -15,6 +15,8 @@ import { useMatchmakingStore } from './matchmaking.store'
 import { usePartyStore } from '../party/party.store'
 
 interface CustomGamesState {
+  chatDock: HTMLDivElement | null
+  setChatDock: (chatDock: HTMLDivElement | null) => void
   playView: 'matchmaking' | 'custom' | 'partner'
   playViewManuallySelected: boolean
   settingsModalOpen: boolean
@@ -79,6 +81,8 @@ const mergeChat = (existing: CustomGameChatMessage[], incoming: CustomGameChatMe
     .slice(-100)
 
 export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
+  chatDock: null,
+  setChatDock: (chatDock) => set({ chatDock }),
   playView: 'matchmaking',
   playViewManuallySelected: false,
   settingsModalOpen: false,

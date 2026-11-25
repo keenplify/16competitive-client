@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState, type JSX, type MouseEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type JSX, type MouseEvent } from 'react'
 import {
-  Bot,
   HelpCircle,
-  LoaderCircle,
   LockKeyhole,
+  Play,
   Plus,
   RefreshCw,
   Settings,
@@ -22,7 +21,9 @@ import type { MatchmakingNode } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { FindMatchButton } from './FindMatchButton'
 import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
-import { CustomGamePlayerRank } from './CustomGamePlayerRank'
+import { RoomRoster } from './RoomRoster'
+import { localMapPreviews } from './map-previews'
+import './room-lobby.css'
 import { RoomSettingsModal } from './RoomSettingsModal'
 import { WarningMarker } from '../../components/ui/WarningMarker'
 import {
@@ -150,8 +151,8 @@ export function CustomGamesPanel({
   const selectNode = useMatchmakingStore((state) => state.selectNode)
   const loadMaps = useMatchmakingStore((state) => state.loadMaps)
   const [passwordRoom, setPasswordRoom] = useState<CustomGameRoom | null>(null)
-  const [movingToTeam, setMovingToTeam] = useState<0 | 1 | 2 | null>(null)
-  const [pendingBotButton, setPendingBotButton] = useState<string | null>(null)
+  const [actionPending, setActionPending] = useState(false)
+  const setChatDock = useCustomGamesStore((s) => s.setChatDock)
   const [memberMenu, setMemberMenu] = useState<{
     member: CustomGameMember
     x: number
@@ -160,12 +161,39 @@ export function CustomGamesPanel({
   const memberMenuRef = useRef<HTMLDivElement>(null)
   useDismissibleMenu(Boolean(memberMenu), memberMenuRef, () => setMemberMenu(null))
 
-  const handleAddBot = async (button: string, team?: 1 | 2): Promise<void> => {
-    setPendingBotButton(button)
+  useLayoutEffect(() => {
+    const menu = memberMenuRef.current
+    if (!memberMenu || !menu) return
+    menu.showPopover()
+    menu.style.left =
+      Math.max(4, Math.min(memberMenu.x, window.innerWidth - menu.offsetWidth - 4)) + 'px'
+    menu.style.top =
+      Math.max(4, Math.min(memberMenu.y, window.innerHeight - menu.offsetHeight - 4)) + 'px'
+    menu.querySelector('button')?.focus({ preventScroll: true })
+  }, [memberMenu])
+  const busy = disabled || savingSettings || addingBot || actionPending
+  const runAction = async (action: () => Promise<void>) => {
+    if (busy) return
+    setActionPending(true)
+    const id = toast.loading(t('roomLobby.updating'))
     try {
-      await addBot(team)
+      await action()
+      const error = useCustomGamesStore.getState().error
+      toast.update(id, {
+        render: error ?? t('roomLobby.updated'),
+        type: error ? 'error' : 'success',
+        isLoading: false,
+        autoClose: 3500
+      })
+    } catch (error) {
+      toast.update(id, {
+        render: error instanceof Error ? error.message : t('customGames.errorTitle'),
+        type: 'error',
+        isLoading: false,
+        autoClose: 4000
+      })
     } finally {
-      setPendingBotButton(null)
+      setActionPending(false)
     }
   }
 
@@ -197,27 +225,20 @@ export function CustomGamesPanel({
     (room.teamOneCapacity > Math.max(1, teamOnePlayingCount) ||
       room.teamTwoCapacity > Math.max(1, teamTwoPlayingCount))
   )
-  const canUnblockFfa = Boolean(room && (room.teamOneCapacity < 8 || room.teamTwoCapacity < 8))
+  const map = maps.find((m) => m.id === room?.mapId)
+  const mapPreview = map?.previewUrl || (room && localMapPreviews[room.mapId])
 
   const showMemberMenu = (event: MouseEvent<HTMLElement>, member: CustomGameMember): void => {
     if (!owner || member.id === currentPlayerId) return
     event.preventDefault()
     setMemberMenu({
       member,
-      x: Math.max(8, Math.min(event.clientX, window.innerWidth - 184)),
-      y: Math.max(8, Math.min(event.clientY, window.innerHeight - 104))
+      x: event.clientX,
+      y: event.clientY
     })
   }
 
-  const moveSelf = async (team: 0 | 1 | 2): Promise<void> => {
-    if (!room || room.state !== 'WAITING' || currentMember?.team === team || movingToTeam !== null)
-      return
-    setMovingToTeam(team)
-    await moveMember(currentPlayerId, team)
-    window.setTimeout(() => setMovingToTeam(null), 320)
-  }
-
-  const moveSelfToFfa = (): void => {
+  const moveSelfToFfa = async (): Promise<void> => {
     if (!room || currentMember?.team !== 0) return
     const teamOneCount = room.members.filter(({ team }) => team === 1).length
     const teamTwoCount = room.members.filter(({ team }) => team === 2).length
@@ -227,10 +248,10 @@ export function CustomGamesPanel({
         : teamTwoCount >= room.teamTwoCapacity || teamOneCount <= teamTwoCount
           ? 1
           : 2
-    void moveSelf(targetTeam)
+    await moveMember(currentPlayerId, targetTeam)
   }
 
-  const changeFfaCapacity = (change: -1 | 1): void => {
+  const changeFfaCapacity = async (change: -1 | 1): Promise<void> => {
     if (!room || room.mode !== 'ffa' || room.state !== 'WAITING') return
     if (change === 1) {
       const team =
@@ -238,14 +259,14 @@ export function CustomGamesPanel({
         (room.teamOneCapacity <= room.teamTwoCapacity || room.teamTwoCapacity >= 8)
           ? 1
           : 2
-      void setTeamCapacity(team, (team === 1 ? room.teamOneCapacity : room.teamTwoCapacity) + 1)
+      await setTeamCapacity(team, (team === 1 ? room.teamOneCapacity : room.teamTwoCapacity) + 1)
       return
     }
     const teamOneSpare = room.teamOneCapacity - Math.max(1, teamOnePlayingCount)
     const teamTwoSpare = room.teamTwoCapacity - Math.max(1, teamTwoPlayingCount)
     const team = teamOneSpare >= teamTwoSpare && teamOneSpare > 0 ? 1 : 2
     if ((team === 1 ? teamOneSpare : teamTwoSpare) <= 0) return
-    void setTeamCapacity(team, (team === 1 ? room.teamOneCapacity : room.teamTwoCapacity) - 1)
+    await setTeamCapacity(team, (team === 1 ? room.teamOneCapacity : room.teamTwoCapacity) - 1)
   }
 
   const addFriend = (member: CustomGameMember): void => {
@@ -273,295 +294,171 @@ export function CustomGamesPanel({
       )}
 
       {room ? (
-        <div className="border border-white/15 bg-neutral-950/75 p-4">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold">{room.name}</h3>
-              <p className="mt-1 text-xs tracking-wide text-neutral-400 uppercase">
-                {room.region} ·{' '}
-                {room.mode === 'ffa'
-                  ? `${t(customModeLabel(roomMode ?? 'ffa'))} · ${t('matchmaking.ffaKillTarget').replace('{kills}', roomMode === 'winter_ffa' ? '30' : '50')}`
-                  : room.teamOneCapacity === room.teamTwoCapacity
-                    ? `${CUSTOM_GAME_MODE_LABELS[room.mode]} ${room.teamOneCapacity}v${room.teamTwoCapacity}`
-                    : `${CUSTOM_GAME_MODE_LABELS[room.mode]} custom`}{' '}
-                · {room.state.replace('_', ' ')}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              {owner && room.state === 'WAITING' && (
-                <>
+        <div className="custom-room-board">
+          <div className="room-main-grid">
+            <aside className="room-map-card">
+              {mapPreview && (
+                <img
+                  key={mapPreview}
+                  src={mapPreview}
+                  alt=""
+                  onError={(e) => {
+                    const fallback = localMapPreviews[room.mapId]
+                    if (fallback && e.currentTarget.getAttribute('src') !== fallback)
+                      e.currentTarget.src = fallback
+                    else e.currentTarget.hidden = true
+                  }}
+                />
+              )}
+              <div className="room-map-caption">
+                <span className="text-xs font-bold uppercase tracking-widest">
+                  {t('customRoom.map')}
+                </span>
+                <h2 className="text-2xl font-bold">{map?.displayName ?? room.mapId}</h2>
+                <p className="mt-2 text-sm">
+                  {t(customModeLabel(roomMode ?? room.mode))} ·{' '}
+                  {room.mode === 'ffa'
+                    ? t('matchmaking.ffaKillTarget').replace(
+                        '{kills}',
+                        roomMode === 'winter_ffa' ? '30' : '50'
+                      )
+                    : `${room.teamOneCapacity}v${room.teamTwoCapacity}`}
+                </p>
+                <p className="mt-1 text-xs uppercase">
+                  {room.region} ·{' '}
+                  {t(
+                    (
+                      {
+                        WAITING: 'roomLobby.waiting',
+                        LIVE: 'roomLobby.live',
+                        READY_CHECK: 'roomLobby.ready',
+                        FINISHED: 'roomLobby.finished'
+                      } as const
+                    )[room.state]
+                  )}
+                </p>
+                {room.state === 'READY_CHECK' && (
+                  <p className="mt-2 text-sm text-amber-200">{t('roomLobby.readyHint')}</p>
+                )}
+              </div>
+            </aside>
+            {(room.mode === 'ffa' ? ([0] as const) : ([1, 2] as const)).map((team) => {
+              const ffa = team === 0
+              const members = ffa ? playingMembers : room.members.filter((m) => m.team === team)
+              const capacity = ffa
+                ? ffaCapacity
+                : team === 1
+                  ? room.teamOneCapacity
+                  : room.teamTwoCapacity
+              const resize = (change: -1 | 1) =>
+                runAction(() =>
+                  team === 0 ? changeFfaCapacity(change) : setTeamCapacity(team, capacity + change)
+                )
+              return (
+                <div key={team} className={ffa ? 'room-ffa' : 'min-w-0'}>
+                  <RoomRoster
+                    title={ffa ? t('profile.players') : t('roomLobby.team', { n: team })}
+                    tone={team === 2 ? 'red' : 'blue'}
+                    host={room.ownerId}
+                    members={members}
+                    capacity={capacity}
+                    maximum={ffa ? 16 : 8}
+                    busy={busy}
+                    canDecrease={ffa ? canBlockFfa : capacity > Math.max(1, members.length)}
+                    onReset={
+                      editable
+                        ? () =>
+                            void runAction(async () => {
+                              for (const side of team === 0 ? ([1, 2] as const) : [team]) {
+                                if (useCustomGamesStore.getState().currentRoom?.id !== room.id)
+                                  return
+                                if ((side === 1 ? room.teamOneCapacity : room.teamTwoCapacity) < 8)
+                                  await setTeamCapacity(side, 8)
+                                if (useCustomGamesStore.getState().error) return
+                              }
+                            })
+                        : undefined
+                    }
+                    onDecrease={editable ? () => void resize(-1) : undefined}
+                    onIncrease={editable ? () => void resize(1) : undefined}
+                    onAddBot={
+                      editable && roomMode !== 'winter_ffa'
+                        ? () => void runAction(() => addBot(team || undefined))
+                        : undefined
+                    }
+                    onJoin={
+                      room.state === 'WAITING' &&
+                      (ffa ? currentMember?.team === 0 : currentMember?.team !== team)
+                        ? () =>
+                            void runAction(() =>
+                              team === 0 ? moveSelfToFfa() : moveMember(currentPlayerId, team)
+                            )
+                        : undefined
+                    }
+                    onMenu={showMemberMenu}
+                    markers={(member) => (
+                      <MemberBetMarkers member={member} currentPlayerId={currentPlayerId} />
+                    )}
+                  />
+                </div>
+              )
+            })}
+          </div>
+          <div className="room-bottom-grid">
+            <div className="room-chat-dock" ref={setChatDock} />
+            <div className="flex min-w-0 flex-col gap-3">
+              <RoomRoster
+                title={t('roomLobby.spectators')}
+                tone="spectators"
+                members={room.members.filter((m) => m.team === 0)}
+                capacity={2}
+                maximum={2}
+                host={room.ownerId}
+                busy={busy}
+                onMenu={showMemberMenu}
+                onJoin={
+                  room.state === 'WAITING' && currentMember?.team !== 0
+                    ? () => void runAction(() => moveMember(currentPlayerId, 0))
+                    : undefined
+                }
+              />
+              <div className="mt-auto flex flex-wrap items-center justify-end gap-2">
+                {editable && (
                   <Button
                     variant="secondary"
-                    className="w-11 shrink-0 px-0"
+                    className="size-10 p-2"
                     aria-label={t('customRoom.settings')}
                     title={t('customRoom.settings')}
                     aria-haspopup="dialog"
-                    disabled={disabled || savingSettings}
+                    disabled={busy}
                     onClick={openRoomSettings}
                   >
-                    <Settings className="size-4" aria-hidden="true" />
+                    <Settings size={18} />
                   </Button>
+                )}
+                <Button
+                  variant="secondary"
+                  className="h-10 px-4"
+                  disabled={busy || (owner && !editable)}
+                  onClick={() => void runAction(leaveRoom)}
+                >
+                  {t('roomLobby.leave')}
+                </Button>
+                {editable && (
                   <Button
-                    disabled={disabled || savingSettings || settingsModalOpen || (roomMode === 'winter_ffa' && playingMembers.length < 2)}
-                    onClick={() => void startRoom()}
+                    className="room-start h-auto min-h-12 grow gap-2 px-5 py-3"
+                    disabled={
+                      busy ||
+                      settingsModalOpen ||
+                      (roomMode === 'winter_ffa' && playingMembers.length < 2)
+                    }
+                    onClick={() => void runAction(startRoom)}
                   >
+                    <Play className="size-4 shrink-0 fill-current" aria-hidden="true" />
                     {t('customRoom.start')}
                   </Button>
-                </>
-              )}
-              <Button
-                variant="secondary"
-                disabled={owner && room.state !== 'WAITING'}
-                onClick={() => void leaveRoom()}
-              >
-                Leave
-              </Button>
-            </div>
-          </div>
-
-          {room.state === 'READY_CHECK' && (
-            <p className="mt-4 border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-100">
-              Ready check is active. The server starts after every human player accepts.
-            </p>
-          )}
-
-          {room.mode === 'ffa' ? (
-            <div className="mt-5 border border-white/10">
-              <p className="border-b border-white/10 px-3 py-2 text-xs font-bold tracking-widest text-neutral-300 uppercase">
-                Players · {playingMembers.length}/{ffaCapacity} · {16 - ffaCapacity} blocked
-              </p>
-              <div className="grid md:grid-cols-2">
-                {Array.from({ length: 16 }, (_, index) => {
-                  const member = playingMembers[index]
-                  const blocked = index >= ffaCapacity
-                  const canMoveHere =
-                    room.state === 'WAITING' && !member && !blocked && currentMember?.team === 0
-                  return (
-                    <div
-                      key={index}
-                      className={`relative flex h-10 items-center justify-between overflow-hidden border-b border-white/10 px-3 text-sm transition-colors md:odd:border-r ${canMoveHere ? 'cursor-pointer hover:bg-sky-400/8' : ''} ${blocked ? 'bg-black/35' : ''}`}
-                      title={canMoveHere ? 'Double-click to join the game' : undefined}
-                      onDoubleClick={canMoveHere ? moveSelfToFfa : undefined}
-                      onContextMenu={member ? (event) => showMemberMenu(event, member) : undefined}
-                    >
-                      {member ? (
-                        <span className="flex min-w-0 items-center gap-2 text-white">
-                          <CustomGamePlayerRank
-                            playerId={member.id}
-                            isBot={member.isBot}
-                            className="size-7"
-                          />
-                          <span className="truncate">{member.isBot ? 'BOT' : member.username}</span>
-                        </span>
-                      ) : (
-                        <span className="text-neutral-600">
-                          {blocked ? 'Blocked' : 'Open player slot'}
-                        </span>
-                      )}
-                      {member && (
-                        <MemberBetMarkers member={member} currentPlayerId={currentPlayerId} />
-                      )}
-                      {blocked && (
-                        <span className="pointer-events-none absolute inset-0" aria-hidden="true">
-                          <span className="absolute top-1/2 left-1/2 h-px w-[110%] -translate-x-1/2 -translate-y-1/2 rotate-[4deg] bg-neutral-500/45" />
-                          <span className="absolute top-1/2 left-1/2 h-px w-[110%] -translate-x-1/2 -translate-y-1/2 -rotate-[4deg] bg-neutral-500/45" />
-                        </span>
-                      )}
-                      {editable && !member && (
-                        <div className="relative z-10 ml-auto flex items-center gap-2">
-                          {!blocked && roomMode !== 'winter_ffa' && (
-                            <button
-                              type="button"
-                              className="grid size-7 place-items-center text-neutral-500 transition hover:bg-white/10 hover:text-sky-300"
-                              aria-label="Add bot"
-                              title="Add bot"
-                              disabled={addingBot}
-                              onClick={() => void handleAddBot(`ffa:${index}`)}
-                            >
-                              {addingBot && pendingBotButton === `ffa:${index}` ? (
-                                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                              ) : (
-                                <Bot className="size-4" aria-hidden="true" />
-                              )}
-                            </button>
-                          )}
-                          {!blocked && index === ffaCapacity - 1 && canBlockFfa && (
-                            <button
-                              type="button"
-                              className="text-xs font-semibold text-amber-300 hover:text-amber-200"
-                              onClick={() => changeFfaCapacity(-1)}
-                            >
-                              Block
-                            </button>
-                          )}
-                          {blocked && index === ffaCapacity && canUnblockFfa && (
-                            <button
-                              type="button"
-                              className="text-xs font-semibold text-sky-300 hover:text-sky-200"
-                              onClick={() => changeFfaCapacity(1)}
-                            >
-                              Unblock
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
+                )}
               </div>
-            </div>
-          ) : (
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              {([1, 2] as const).map((team) => (
-                <div
-                  key={team}
-                  className={
-                    movingToTeam === team
-                      ? 'border border-sky-400/70 bg-sky-400/10 transition-colors duration-300'
-                      : 'border border-white/10 transition-colors duration-300'
-                  }
-                >
-                  <p className="border-b border-white/10 px-3 py-2 text-xs font-bold tracking-widest text-neutral-300 uppercase">
-                    Team {team} · {room.members.filter((member) => member.team === team).length}/
-                    {team === 1 ? room.teamOneCapacity : room.teamTwoCapacity} ·{' '}
-                    {8 - (team === 1 ? room.teamOneCapacity : room.teamTwoCapacity)} blocked
-                  </p>
-                  <div className="divide-y divide-white/10">
-                    {Array.from({ length: 8 }, (_, index) => {
-                      const capacity = team === 1 ? room.teamOneCapacity : room.teamTwoCapacity
-                      const member = room.members.filter((candidate) => candidate.team === team)[
-                        index
-                      ]
-                      const blocked = index >= capacity
-                      const canMoveHere =
-                        room.state === 'WAITING' &&
-                        !member &&
-                        !blocked &&
-                        currentMember?.team !== team
-                      return (
-                        <div
-                          key={index}
-                          className={`relative flex h-10 items-center justify-between overflow-hidden px-3 text-sm transition-colors ${canMoveHere ? 'cursor-pointer hover:bg-sky-400/8' : ''} ${blocked ? 'bg-black/35' : ''}`}
-                          title={canMoveHere ? `Double-click to join Team ${team}` : undefined}
-                          onDoubleClick={canMoveHere ? () => void moveSelf(team) : undefined}
-                          onContextMenu={
-                            member ? (event) => showMemberMenu(event, member) : undefined
-                          }
-                        >
-                          {member ? (
-                            <span className="flex min-w-0 items-center gap-2 text-white">
-                              <CustomGamePlayerRank
-                                playerId={member.id}
-                                isBot={member.isBot}
-                                className="size-7"
-                              />
-                              <span className="truncate">
-                                {member.isBot ? 'BOT' : member.username}
-                              </span>
-                            </span>
-                          ) : (
-                            <span className="text-neutral-600">
-                              {blocked ? 'Blocked' : 'Open slot'}
-                            </span>
-                          )}
-                          {member && (
-                            <MemberBetMarkers member={member} currentPlayerId={currentPlayerId} />
-                          )}
-                          {blocked && (
-                            <span
-                              className="pointer-events-none absolute inset-0"
-                              aria-hidden="true"
-                            >
-                              <span className="absolute top-1/2 left-1/2 h-px w-[110%] -translate-x-1/2 -translate-y-1/2 rotate-[4deg] bg-neutral-500/45" />
-                              <span className="absolute top-1/2 left-1/2 h-px w-[110%] -translate-x-1/2 -translate-y-1/2 -rotate-[4deg] bg-neutral-500/45" />
-                            </span>
-                          )}
-                          {editable && !member && (
-                            <div className="relative z-10 ml-auto flex items-center gap-2">
-                              {!blocked && (
-                                <button
-                                  type="button"
-                                  className="grid size-7 place-items-center text-neutral-500 transition hover:bg-white/10 hover:text-sky-300"
-                                  aria-label={`Add bot to Team ${team}`}
-                                  title={`Add bot to Team ${team}`}
-                                  disabled={addingBot}
-                                  onClick={(event) => {
-                                    event.stopPropagation()
-                                    void handleAddBot(`team:${team}:${index}`, team)
-                                  }}
-                                >
-                                  {addingBot && pendingBotButton === `team:${team}:${index}` ? (
-                                    <LoaderCircle
-                                      className="size-4 animate-spin"
-                                      aria-hidden="true"
-                                    />
-                                  ) : (
-                                    <Bot className="size-4" aria-hidden="true" />
-                                  )}
-                                </button>
-                              )}
-                              {capacity > 1 && !blocked && index === capacity - 1 && (
-                                <button
-                                  type="button"
-                                  className="text-xs font-semibold text-amber-300 hover:text-amber-200"
-                                  onClick={(event) => {
-                                    event.stopPropagation()
-                                    void setTeamCapacity(team, capacity - 1)
-                                  }}
-                                >
-                                  Block
-                                </button>
-                              )}
-                              {blocked && index === capacity && (
-                                <button
-                                  type="button"
-                                  className="text-xs font-semibold text-sky-300 hover:text-sky-200"
-                                  onClick={() => void setTeamCapacity(team, capacity + 1)}
-                                >
-                                  Unblock
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="mt-4 border border-white/10">
-            <p className="border-b border-white/10 px-3 py-2 text-xs font-bold tracking-widest text-neutral-300 uppercase">
-              Spectators · {room.members.filter((member) => member.team === 0).length}/2
-            </p>
-            <div className="grid md:grid-cols-2 md:divide-x md:divide-white/10">
-              {Array.from({ length: 2 }, (_, index) => {
-                const member = room.members.filter((candidate) => candidate.team === 0)[index]
-                const canMoveHere = room.state === 'WAITING' && !member && currentMember?.team !== 0
-                return (
-                  <div
-                    key={index}
-                    className={`flex h-10 items-center justify-between px-3 text-sm transition-colors ${canMoveHere ? 'cursor-pointer hover:bg-sky-400/8' : ''} ${movingToTeam === 0 ? 'bg-sky-400/10' : ''}`}
-                    title={canMoveHere ? 'Double-click to spectate' : undefined}
-                    onDoubleClick={canMoveHere ? () => void moveSelf(0) : undefined}
-                    onContextMenu={member ? (event) => showMemberMenu(event, member) : undefined}
-                  >
-                    {member ? (
-                      <span className="flex min-w-0 items-center gap-2 text-white">
-                        <CustomGamePlayerRank
-                          playerId={member.id}
-                          isBot={member.isBot}
-                          className="size-7"
-                        />
-                        <span className="truncate">{member.isBot ? 'BOT' : member.username}</span>
-                      </span>
-                    ) : (
-                      <span className="text-neutral-600">Open spectator slot</span>
-                    )}
-                  </div>
-                )
-              })}
             </div>
           </div>
         </div>
@@ -749,9 +646,10 @@ export function CustomGamesPanel({
       {memberMenu && (
         <div
           ref={memberMenuRef}
+          popover="manual"
           role="menu"
-          aria-label={`Room options for ${memberMenu.member.username}`}
-          className="fixed z-[90] w-44 border border-white/15 bg-neutral-950 py-1 shadow-2xl"
+          aria-label={memberMenu.member.username}
+          className="fixed inset-auto m-0 z-[90] w-44 text-white border border-white/15 bg-neutral-950 py-1 shadow-2xl"
           style={{ left: memberMenu.x, top: memberMenu.y }}
           onClick={(event) => event.stopPropagation()}
         >
@@ -763,7 +661,7 @@ export function CustomGamesPanel({
               onClick={() => addFriend(memberMenu.member)}
             >
               <UserPlus className="size-4 text-sky-300" aria-hidden="true" />
-              Add friend
+              {t('profile.addFriend')}
             </button>
           )}
           <button
@@ -773,11 +671,11 @@ export function CustomGamesPanel({
             onClick={() => {
               const playerId = memberMenu.member.id
               setMemberMenu(null)
-              void kick(playerId)
+              void runAction(() => kick(playerId))
             }}
           >
             <UserX className="size-4" aria-hidden="true" />
-            Kick from room
+            {t('roomLobby.kick')}
           </button>
         </div>
       )}

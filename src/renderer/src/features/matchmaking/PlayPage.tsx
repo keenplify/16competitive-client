@@ -613,12 +613,12 @@ export function PlayPage({
       >
         <header className="flex min-h-20 shrink-0 flex-wrap items-center justify-between gap-2 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] sm:flex-nowrap">
           <div className="w-full min-w-0 sm:w-auto">
-            <h1 className="whitespace-nowrap text-2xl font-semibold text-white sm:text-3xl">
+            <h1 className="truncate text-2xl font-semibold text-white sm:text-3xl">
               {visiblePlayView === 'partner'
                 ? communityText('servers')
                 : visiblePlayView === 'matchmaking'
                   ? 'Find a match'
-                  : 'Browse custom games'}
+                  : (currentCustomRoom?.name ?? 'Browse custom games')}
             </h1>
           </div>
           <div

@@ -1,0 +1,227 @@
+.custom-room-board {
+  container-type: inline-size;
+  background: #0c131c;
+  border: 1px solid #ffffff25;
+  color: #eff5fb;
+  padding: 12px;
+}
+.room-main-grid,
+.room-bottom-grid {
+  display: grid;
+  gap: 12px;
+  align-items: start;
+}
+.room-main-grid {
+  grid-template-columns: minmax(160px, 0.72fr) repeat(2, minmax(0, 1fr));
+}
+.room-bottom-grid {
+  margin-top: 12px;
+  grid-template-columns: minmax(0, 1.72fr) minmax(0, 1fr);
+}
+.room-map-card {
+  position: relative;
+  align-self: stretch;
+  min-height: 185px;
+  overflow: hidden;
+  background: linear-gradient(130deg, #374657, #151b23);
+  border: 1px solid #ffffff21;
+}
+.room-map-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.room-map-caption {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  height: 100%;
+  min-height: 185px;
+  padding: 28px 16px 16px;
+  background: linear-gradient(0deg, #080e16 2%, #080e16cc 30%, transparent 85%);
+  text-shadow: 0 1px 3px #000;
+}
+.room-roster {
+  border: 1px solid #ffffff26;
+  background: #141d29;
+}
+.room-roster-head {
+  min-height: 56px;
+  border-left: 4px solid #52afff;
+  background: linear-gradient(105deg, #215588, #1c314c 75%);
+  color: white;
+}
+.room-roster[data-tone='red'] .room-roster-head {
+  border-color: #ff7967;
+  background: linear-gradient(105deg, #913f3e, #472731 75%);
+}
+.room-roster[data-tone='spectators'] .room-roster-head {
+  min-height: 36px;
+  border-color: #82aea5;
+  background: linear-gradient(105deg, #314b4b, #202e38);
+}
+.room-seat {
+  min-height: 41px;
+  border-top: 1px solid #ffffff14;
+  font-size: 14px;
+}
+.room-seat:nth-child(even) {
+  background: #ffffff04;
+}
+.room-join {
+  border: 1px solid #ffffff26;
+}
+.room-ffa {
+  grid-column: span 2;
+}
+.room-chat-dock .lobby-chat-panel {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  max-width: none;
+  height: 12rem;
+  z-index: auto;
+}
+.room-chat-dock {
+  min-width: 0;
+}
+:root[data-launcher-theme='vgui2'] .custom-room-board {
+  --vgui-face: #283848;
+  --vgui-inset: #101b27;
+  --vgui-dark: #0a111a;
+  --vgui-light: #556779;
+  --vgui-text: #e6edf3;
+  --vgui-accent: #f5c266;
+  --vgui-raised: inset 1px 1px #68798a, inset -1px -1px #080f16;
+  background: #101822;
+  border-color: #435363;
+}
+:root[data-launcher-theme='vgui2'] .room-roster {
+  background: #172432;
+  border-color: #394957;
+}
+:root[data-launcher-theme='vgui2'] .room-roster-head {
+  --banner-start: #276496;
+  --banner-end: #142d48;
+  background:
+    repeating-linear-gradient(120deg, transparent 0 16px, #ffffff06 16px 23px),
+    linear-gradient(105deg, var(--banner-start), var(--banner-end) 85%);
+  box-shadow:
+    inset 0 1px #ffffff26,
+    inset 0 -1px #0005;
+}
+:root[data-launcher-theme='vgui2'] .room-roster[data-tone='red'] .room-roster-head {
+  --banner-start: #90433d;
+  --banner-end: #40252d;
+}
+:root[data-launcher-theme='vgui2'] .room-roster[data-tone='spectators'] .room-roster-head {
+  --banner-start: #334846;
+  --banner-end: #1e2c31;
+}
+:root[data-launcher-theme='vgui2'] .room-roster-head h3 {
+  font:
+    700 15px/1.2 'Segoe UI',
+    sans-serif;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+:root[data-launcher-theme='vgui2'] .room-seat:nth-child(even) {
+  background: #1b2938;
+}
+:root[data-launcher-theme='vgui2'] .room-chat-dock .lobby-chat-panel {
+  background: #131e2a;
+  border-color: #405161;
+  box-shadow: none;
+}
+.custom-room-board button.room-start,
+:root[data-launcher-theme='vgui2'] .custom-room-board button.room-start {
+  background: linear-gradient(180deg, #ffdb76, #f4ad38);
+  color: #251907;
+  border: 1px solid #ffc762;
+  box-shadow:
+    inset 0 1px #fff1b5,
+    inset 0 -2px #b77b24,
+    0 2px 6px #0006;
+  font:
+    750 15px/1.2 'Segoe UI',
+    sans-serif;
+}
+.custom-room-board button.room-start:hover:enabled {
+  filter: brightness(1.1);
+}
+.custom-room-board button.room-start:focus-visible {
+  outline: 2px solid #fff0bc;
+  outline-offset: 2px;
+}
+.custom-room-board button.room-start:disabled {
+  filter: saturate(0.25);
+  opacity: 0.62;
+}
+:root:not([data-launcher-theme='vgui2']) .room-main-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+:root:not([data-launcher-theme='vgui2']) .room-map-card {
+  grid-column: 1 / -1;
+  min-height: 0;
+  border: 0;
+}
+:root:not([data-launcher-theme='vgui2']) .room-map-card img {
+  object-position: center 46%;
+}
+:root:not([data-launcher-theme='vgui2']) .room-map-caption {
+  min-height: 150px;
+  padding: 18px 24px;
+  background: linear-gradient(90deg, #080c12ef, #10171c80 44%, transparent 80%);
+}
+:root:not([data-launcher-theme='vgui2']) .room-map-caption h2 {
+  font: 800 clamp(28px, 4cqw, 44px)/1 'Segoe UI', sans-serif;
+  letter-spacing: -.035em;
+}
+:root:not([data-launcher-theme='vgui2']) .room-roster {
+  background: #10151b;
+  border-color: #ffffff18;
+}
+:root:not([data-launcher-theme='vgui2']) .room-roster-head {
+  --team-accent: #67bfff;
+  border: 0;
+  border-top: 3px solid var(--team-accent);
+  background: linear-gradient(90deg, #203647, #151d25 65%);
+}
+:root:not([data-launcher-theme='vgui2']) .room-roster[data-tone='red'] .room-roster-head {
+  --team-accent: #ff8675;
+  background: linear-gradient(90deg, #422c30, #211b20 65%);
+}
+:root:not([data-launcher-theme='vgui2']) .room-roster[data-tone='spectators'] .room-roster-head {
+  --team-accent: #87b2a4;
+  background: #1a2425;
+}
+@container (max-width: 800px) {
+  .room-main-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .room-map-card {
+    grid-column: 1/-1;
+    min-height: 110px;
+  }
+  .room-map-caption {
+    min-height: 110px;
+    padding: 12px 16px;
+    background: linear-gradient(90deg, #09101bf2, transparent);
+  }
+  .room-bottom-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (max-width: 540px) {
+  :root:not([data-launcher-theme='vgui2']) .room-main-grid,
+  .room-main-grid,
+  .room-bottom-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .room-ffa {
+    grid-column: auto;
+  }
+}
