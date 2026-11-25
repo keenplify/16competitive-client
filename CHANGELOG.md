@@ -5192,3 +5192,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - Chrome on supported first-person weapon skins now responds to turning and to changes in map lighting as you move between bright and shaded areas.
+
+## v2026.1125.9 — 2026-11-25
+
+### Store
+
+- Email promo links now open the Store with the code ready for confirmation.
+
+### Email
+
+- Email verification status is shared between the web app and launcher.
+- Optional promotional email preferences are now shared across both platforms.
