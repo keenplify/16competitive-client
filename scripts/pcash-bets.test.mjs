@@ -45,8 +45,9 @@ async function fixture(api) {
   ).outputText
   const module = new vm.SourceTextModule(code, { context })
   await module.link((name) => {
-    const values =
-      name === 'zustand'
+    const values = name.endsWith('/funds-message')
+      ? { fundsMessage: (message) => message }
+      : name === 'zustand'
         ? { create }
         : name === 'react-toastify'
           ? { toast }

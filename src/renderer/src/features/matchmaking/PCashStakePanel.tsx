@@ -1,3 +1,4 @@
+import { TopUpNow } from '../skins/TopUpNow'
 import { CurrencyAmount } from '../../components/CurrencyIcon'
 import { useEffect, useState } from 'react'
 import { LoaderCircle } from 'lucide-react'
@@ -60,7 +61,7 @@ function CustomStakeInput({
   const preview = valid && currency ? formatPCashPair(pcash, currency, language) : null
   if (!currency) return <></>
   return (
-    <label className="mt-2 flex flex-wrap items-center gap-2 text-xs text-neutral-200">
+    <label className="flex flex-wrap items-center gap-2 text-xs text-neutral-200">
       <span className="shrink-0">{t('bet.customAmount')}</span>
       <span className="inline-flex items-center gap-1.5">
         <span className="text-sm">{currency.symbol}</span>
@@ -255,15 +256,18 @@ export function PCashStakeView({
                   </Button>
                 ))}
           </div>
-          {localized && currency.custom.enabled && (
-            <CustomStakeInput
-              snapshot={snapshot}
-              disabled={disabled}
-              busy={busy}
-              onAmount={onAmount}
-              language={language}
-            />
-          )}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {localized && currency.custom.enabled && (
+              <CustomStakeInput
+                snapshot={snapshot}
+                disabled={disabled}
+                busy={busy}
+                onAmount={onAmount}
+                language={language}
+              />
+            )}
+            {snapshot.open && !snapshot.bet && <TopUpNow />}
+          </div>
           <p className="mt-3 text-sm font-semibold tabular-nums text-amber-200">
             {snapshot.bet
               ? t('bet.placed')

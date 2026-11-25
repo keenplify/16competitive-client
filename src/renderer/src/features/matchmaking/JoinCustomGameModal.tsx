@@ -1,3 +1,5 @@
+import { useTranslation } from '../i18n/i18n'
+import { TopUpNow } from '../skins/TopUpNow'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useRef, useState, type FormEvent, type JSX } from 'react'
 import { LockKeyhole, X } from 'lucide-react'
@@ -11,6 +13,7 @@ interface JoinCustomGameModalProps {
 }
 
 export function JoinCustomGameModal({ room, onClose }: JoinCustomGameModalProps): JSX.Element {
+  const { t } = useTranslation()
   const joinRoom = useCustomGamesStore((state) => state.joinRoom)
   const error = useCustomGamesStore((state) => state.error)
   const [password, setPassword] = useState('')
@@ -75,7 +78,7 @@ export function JoinCustomGameModal({ room, onClose }: JoinCustomGameModalProps)
               onChange={(event) => setPassword(event.target.value)}
             />
           </label>
-          {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+          {error && <p className="mt-3 text-sm text-red-400">{error} {error === t('customRoom.betInsufficient') && <TopUpNow />}</p>}
           <footer className="mt-6 flex justify-end gap-3 border-t border-white/10 pt-5">
             <Button variant="ghost" type="button" disabled={submitting} onClick={onClose}>
               Cancel

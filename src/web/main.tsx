@@ -1,6 +1,8 @@
 import './partner-login-capture'
 import '../renderer/src/features/i18n/detect-initial-language'
 
+document.addEventListener('contextmenu', (event) => event.preventDefault())
+
 const duplicateMessage = {
   en: 'You can only open one instance of 1.6 Competitive at a time.',
   ru: 'Можно открыть только один экземпляр 1.6 Competitive.',

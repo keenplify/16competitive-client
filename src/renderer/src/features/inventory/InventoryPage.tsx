@@ -1,3 +1,4 @@
+import { TopUpNow } from '../skins/TopUpNow'
 import { createPortal } from 'react-dom'
 import { LoadoutGameSwitch } from '../skins/LoadoutGameSwitch'
 import { useLoadoutGameStore } from '../skins/loadout-game.store'
@@ -351,7 +352,7 @@ function InventoryNotice() {
       role={notice.kind === 'error' ? 'alert' : 'status'}
       className="pointer-events-none fixed right-6 top-6 z-50 max-w-sm border border-white/20 bg-neutral-900 px-4 py-3 text-sm shadow-xl"
     >
-      {t(notice.key)}
+      {t(notice.key)} {notice.key === 'funds' && <span className="pointer-events-auto"><TopUpNow /></span>}
     </div>
   )
 }

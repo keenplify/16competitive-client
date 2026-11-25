@@ -1,3 +1,4 @@
+import { fundsMessage } from '../skins/funds-message'
 import { gameModeFallback } from '../../../../shared/game-mode-preference'
 import { usePartnerGamePreferenceStore } from '../settings/partner-game-preference.store'
 import { configuredGames } from '../settings/game-availability'
@@ -203,7 +204,11 @@ export function PlayPage({
   useEffect(() => {
     if (customRoomError)
       toast.error(
-        <NotificationContent title={t('customGames.errorTitle')} message={customRoomError} />
+        customRoomError === t('customRoom.betInsufficient') ? (
+          fundsMessage(customRoomError)
+        ) : (
+          <NotificationContent title={t('customGames.errorTitle')} message={customRoomError} />
+        )
       )
   }, [customRoomError, t])
 
@@ -611,24 +616,85 @@ export function PlayPage({
             'lg:flex lg:h-full lg:min-h-0 lg:flex-col'
         )}
       >
-        <header className="flex min-h-20 shrink-0 flex-wrap items-center justify-between gap-2 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] sm:flex-nowrap">
-          <div className="w-full min-w-0 sm:w-auto">
-            <h1 className="truncate text-2xl font-semibold text-white sm:text-3xl">
-              {visiblePlayView === 'partner'
-                ? communityText('servers')
-                : visiblePlayView === 'matchmaking'
-                  ? 'Find a match'
-                  : (currentCustomRoom?.name ?? 'Browse custom games')}
-            </h1>
-          </div>
-          <div
-            className={twMerge(
-              'flex w-full flex-wrap items-end justify-end gap-x-5 gap-y-2 sm:ml-auto sm:w-auto',
-              visiblePlayView === 'partner' && 'hidden'
-            )}
-          >
-            <div className="w-72 max-w-full shrink-0">
-              <div className="flex items-center justify-between gap-3 text-xs text-neutral-200">
+        <header className="flex shrink-0 flex-col gap-2 md:flex-row md:items-end md:gap-4">
+          <TabList
+            className="min-w-0 flex-1"
+            ariaLabel={communityText('playModes')}
+            value={activePlayTab}
+            items={[
+              ...(legacyFirst ? legacyTabs : []),
+              ...(hasCommunityServers
+                ? [
+                    {
+                      value: 'partner' as const,
+                      label: communityText('servers'),
+                      disabled: isSearching
+                    }
+                  ]
+                : []),
+              ...(showCompetitive
+                ? [
+                    {
+                      value: 'competitive',
+                      label: t('play.competitive'),
+                      helpText: t(
+                        competitiveMode === '3v3'
+                          ? 'matchmaking.modeHelp3v3'
+                          : 'matchmaking.modeHelp5v5'
+                      ),
+                      disabled:
+                        (isSearching && !isCs16RankedMode(selectedMode)) ||
+                        (!isSearching && !isLeader)
+                    }
+                  ]
+                : []),
+              ...((!preferredGame && !hideDesktopOnlyFeatures) || ffaTabModes.length > 0
+                ? [
+                    {
+                      value: 'noncompetitive',
+                      label: t('warmup.tab'),
+                      disabled:
+                        (isSearching && activePlayTab !== 'noncompetitive') ||
+                        (!isSearching && (!isLeader || ffaTabModes.length === 0))
+                    }
+                  ]
+                : []),
+              ...(noncompetitiveModes.includes('arena')
+                ? [
+                    {
+                      value: 'arena',
+                      label: t('customRoom.mode.arena'),
+                      disabled:
+                        (isSearching && selectedMode !== 'arena') || (!isSearching && !isLeader)
+                    }
+                  ]
+                : []),
+              ...(!legacyFirst ? legacyTabs : []),
+              { value: 'custom', label: t('play.customGame') }
+            ]}
+            onChange={(view) => {
+              if (view === 'custom' || view === 'partner') {
+                setPlayView(view)
+                return
+              }
+              setPlayView('matchmaking')
+              if (!isSearching) {
+                if (view === 'competitive') selectMode(competitiveMode)
+                else if (view === 'arena') selectMode('arena')
+                else if (view === 'cs13') {
+                  if (cs13Modes[0]) selectMode(cs13Modes[0])
+                } else if (
+                  view === 'noncompetitive' &&
+                  !ffaTabModes.some((mode) => mode === selectedMode) &&
+                  ffaTabModes[0]
+                )
+                  selectMode(ffaTabModes.includes('ffa') ? 'ffa' : ffaTabModes[0])
+              }
+            }}
+          />
+          {visiblePlayView !== 'partner' && (
+            <div className="flex max-w-full shrink-0 items-center gap-3 self-end">
+              <div className="flex flex-col items-end gap-0.5 text-xs text-neutral-200">
                 <label className="font-semibold tracking-wide uppercase" htmlFor="play-region">
                   {visiblePlayView === 'custom' ? 'Server' : 'Preferred region'}
                 </label>
@@ -643,119 +709,45 @@ export function PlayPage({
                   {connectionLabels[connectionStatus]}
                 </span>
               </div>
-              <MatchmakingRegionSelect
-                id="play-region"
-                ariaLabel={
-                  visiblePlayView === 'custom'
-                    ? 'Custom game server'
-                    : 'Preferred matchmaking region'
-                }
-                nodes={nodes}
-                selectedNodeId={
-                  visiblePlayView === 'custom'
-                    ? (currentCustomRoom?.hostNodeId ?? selectedNodeId)
-                    : selectedNodeId
-                }
-                allowAutomatic={visiblePlayView !== 'custom' || !currentCustomRoom}
-                disabled={
-                  visiblePlayView === 'matchmaking'
-                    ? isSearching
-                    : movingCustomRoom ||
-                      Boolean(
-                        currentCustomRoom &&
-                        (currentCustomRoom.ownerId !== player?.id ||
-                          currentCustomRoom.state !== 'WAITING')
-                      )
-                }
-                showHint={false}
-                onChange={(nodeId) => {
-                  if (visiblePlayView === 'custom' && currentCustomRoom) {
-                    if (nodeId && nodeId !== currentCustomRoom.hostNodeId)
-                      void moveCustomRoom(nodeId)
-                  } else {
-                    void selectNode(nodeId)
+              <div className="w-40 max-w-full">
+                <MatchmakingRegionSelect
+                  id="play-region"
+                  ariaLabel={
+                    visiblePlayView === 'custom'
+                      ? 'Custom game server'
+                      : 'Preferred matchmaking region'
                   }
-                }}
-              />
+                  nodes={nodes}
+                  selectedNodeId={
+                    visiblePlayView === 'custom'
+                      ? (currentCustomRoom?.hostNodeId ?? selectedNodeId)
+                      : selectedNodeId
+                  }
+                  allowAutomatic={visiblePlayView !== 'custom' || !currentCustomRoom}
+                  disabled={
+                    visiblePlayView === 'matchmaking'
+                      ? isSearching
+                      : movingCustomRoom ||
+                        Boolean(
+                          currentCustomRoom &&
+                          (currentCustomRoom.ownerId !== player?.id ||
+                            currentCustomRoom.state !== 'WAITING')
+                        )
+                  }
+                  showHint={false}
+                  onChange={(nodeId) => {
+                    if (visiblePlayView === 'custom' && currentCustomRoom) {
+                      if (nodeId && nodeId !== currentCustomRoom.hostNodeId)
+                        void moveCustomRoom(nodeId)
+                    } else {
+                      void selectNode(nodeId)
+                    }
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </header>
-
-        <TabList
-          className="mt-3 shrink-0"
-          ariaLabel={communityText('playModes')}
-          value={activePlayTab}
-          items={[
-            ...(legacyFirst ? legacyTabs : []),
-            ...(hasCommunityServers
-              ? [
-                  {
-                    value: 'partner' as const,
-                    label: communityText('servers'),
-                    disabled: isSearching
-                  }
-                ]
-              : []),
-            ...(showCompetitive
-              ? [
-                  {
-                    value: 'competitive',
-                    label: t('play.competitive'),
-                    helpText: t(
-                      competitiveMode === '3v3'
-                        ? 'matchmaking.modeHelp3v3'
-                        : 'matchmaking.modeHelp5v5'
-                    ),
-                    disabled:
-                      (isSearching && !isCs16RankedMode(selectedMode)) ||
-                      (!isSearching && !isLeader)
-                  }
-                ]
-              : []),
-            ...((!preferredGame && !hideDesktopOnlyFeatures) || ffaTabModes.length > 0
-              ? [
-                  {
-                    value: 'noncompetitive',
-                    label: t('warmup.tab'),
-                    disabled:
-                      (isSearching && activePlayTab !== 'noncompetitive') ||
-                      (!isSearching && (!isLeader || ffaTabModes.length === 0))
-                  }
-                ]
-              : []),
-            ...(noncompetitiveModes.includes('arena')
-              ? [
-                  {
-                    value: 'arena',
-                    label: t('customRoom.mode.arena'),
-                    disabled:
-                      (isSearching && selectedMode !== 'arena') || (!isSearching && !isLeader)
-                  }
-                ]
-              : []),
-            ...(!legacyFirst ? legacyTabs : []),
-            { value: 'custom', label: t('play.customGame') }
-          ]}
-          onChange={(view) => {
-            if (view === 'custom' || view === 'partner') {
-              setPlayView(view)
-              return
-            }
-            setPlayView('matchmaking')
-            if (!isSearching) {
-              if (view === 'competitive') selectMode(competitiveMode)
-              else if (view === 'arena') selectMode('arena')
-              else if (view === 'cs13') {
-                if (cs13Modes[0]) selectMode(cs13Modes[0])
-              } else if (
-                view === 'noncompetitive' &&
-                !ffaTabModes.some((mode) => mode === selectedMode) &&
-                ffaTabModes[0]
-              )
-                selectMode(ffaTabModes.includes('ffa') ? 'ffa' : ffaTabModes[0])
-            }
-          }}
-        />
 
         {visiblePlayView === 'partner' ? (
           <PartnerServersPanel

@@ -1,3 +1,4 @@
+import { fundsMessage } from '../skins/funds-message'
 import { useLoadoutGameStore } from '../skins/loadout-game.store'
 import type { GameVersion } from '../../../../shared/game-version'
 import { createElement } from 'react'
@@ -132,7 +133,7 @@ async function feedback(action: () => Promise<void>, purchased?: () => Purchased
     }
     useInventoryStore.setState({ notice: { kind: 'error', key: errorKey(error) } })
     toast.update(id, {
-      render: t(errorKey(error)),
+      render: errorKey(error) === 'funds' ? fundsMessage(t('funds')) : t(errorKey(error)),
       type: 'error',
       isLoading: false,
       autoClose: 8000,

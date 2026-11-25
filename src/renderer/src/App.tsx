@@ -1,3 +1,4 @@
+import { PCashTopUpModal } from './features/skins/PCashTopUp'
 import { RewardInboxController } from './features/rewards/RewardInboxController'
 import { ReadyCheckWarning } from './features/matchmaking/ReadyCheckWarning'
 import './features/settings/launcher-theme.store'
@@ -75,6 +76,7 @@ function App({ preserveMusic = false, partnerSignInOnly = false }: {
           />
         </ModalToastLayer>
         <AuthPage partnerSignInOnly={partnerSignInOnly} />
+        <PCashTopUpModal />
         <ProfileOverlay />
         <MatchDetailsOverlay />
         <IcafeBranchPanel />

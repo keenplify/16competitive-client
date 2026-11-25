@@ -1,3 +1,5 @@
+import { TopUpNow } from '../skins/TopUpNow'
+import { fundsMessage } from '../skins/funds-message'
 import { useEffect, useLayoutEffect, useRef, useState, type JSX, type MouseEvent } from 'react'
 import {
   HelpCircle,
@@ -105,6 +107,7 @@ function MemberBetMarkers({
       <span className="text-[11px] tabular-nums text-neutral-400">
         {t('customRoom.betShare', { amount })}
       </span>
+      {self && member.betCovered === false && <TopUpNow />}
       {member.betCovered === false && (
         <WarningMarker label={t('customRoom.betInsufficient')}>
           <span className="block max-w-64 text-xs leading-relaxed">
@@ -181,7 +184,7 @@ export function CustomGamesPanel({
       await action()
       const error = useCustomGamesStore.getState().error
       toast.update(id, {
-        render: error ?? t('roomLobby.updated'),
+        render: error === t('customRoom.betInsufficient') ? fundsMessage(error) : error ?? t('roomLobby.updated'),
         type: error ? 'error' : 'success',
         isLoading: false,
         autoClose: 3500

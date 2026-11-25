@@ -1,4 +1,5 @@
-import { preferredPaymentProvider } from '../../../../shared/payment-preference'
+import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
+import { preferredPaymentProvider, topUpMethods } from '../../../../shared/payment-preference'
 import { toast } from 'react-toastify'
 import { translate, useLanguageStore } from '../i18n/i18n'
 import { create } from 'zustand'
@@ -30,6 +31,7 @@ interface PaymentsState {
   busy: boolean
   error: boolean
   initialize: (ownerId: string | null) => void
+  show: () => void
   toggle: () => void
   close: () => void
   setAmount: (amount: string) => void
@@ -149,7 +151,14 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
       amount: '1000'
     })
   },
-  toggle: () => set((state) => ({ open: !state.open, historyOpen: false, activeManualId: null })),
+  show: () => set({ open: true, methodResolved: false, historyOpen: false, activeManualId: null }),
+  toggle: () =>
+    set((state) => ({
+      open: !state.open,
+      methodResolved: false,
+      historyOpen: false,
+      activeManualId: null
+    })),
   close: () => set({ open: false, historyOpen: false, activeManualId: null }),
   setAmount: (amount) => set({ amount }),
   async load(orderId, provider, feedback = false) {
@@ -166,18 +175,24 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
         ? await window.api.skins.refreshPayment(orderId, provider)
         : await window.api.skins.payments()
       if (current())
-        set((state) => ({
-          snapshot,
-          ...(state.methodResolved
-            ? {}
-            : {
-                methodId:
-                  state.preferredProvider === 'paymongo' && snapshot.paymongo?.enabled
-                    ? 'paymongo'
-                    : 'paymento',
-                methodResolved: true
-              })
-        }))
+        set((state) => {
+          const brand = usePartnerBrandingStore.getState()
+          const options = topUpMethods(
+            state.preferredProvider,
+            brand.branding?.priorityPaymentMethod ?? brand.joinedBranding?.priorityPaymentMethod,
+            snapshot
+          )
+          if (
+            state.methodResolved &&
+            options.some((option) => option.id === state.methodId && !option.disabled)
+          )
+            return { snapshot }
+          return {
+            snapshot,
+            methodId: options.find((option) => !option.disabled)?.id ?? 'paymento',
+            methodResolved: false
+          }
+        })
       if (notification !== null)
         toast.update(notification, {
           render: translate(useLanguageStore.getState().language, 'payments.updated'),

@@ -1,3 +1,4 @@
+import { TopUpNow } from '../skins/TopUpNow'
 import { usePaymentsStore } from './payments.store'
 import { type JSX } from 'react'
 import { Check, Headphones, LoaderCircle, Play, Square } from 'lucide-react'
@@ -184,6 +185,7 @@ export function MusicKitPurchaseDialog(): JSX.Element {
             ? t(state.currency === 'POINTS' ? 'music.insufficient' : 'music.insufficientCash')
             : ''}
       </p>
+      {(insufficient || state.error === 'music.insufficient' || state.error === 'music.insufficientCash') && <TopUpNow />}
       <div className="mt-3 flex justify-end gap-3">
         <Button variant="ghost" disabled={state.pending} onClick={() => state.choosePurchase(null)}>
           {t('music.cancel')}

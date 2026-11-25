@@ -118,7 +118,7 @@ export function MatchmakingRegionSelect({
           singleValue: (base) => ({ ...base, overflow: 'visible' })
         }}
         classNames={{
-          container: () => 'mt-3 w-full text-sm',
+          container: () => 'w-full text-sm',
           control: ({ isFocused, isDisabled }) =>
             twMerge(
               'min-h-11 flex-nowrap cursor-pointer border border-white/10 bg-neutral-900 text-white transition',

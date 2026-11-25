@@ -1208,10 +1208,6 @@
   max-width: none;
 }
 
-:root[data-launcher-theme='vgui2'] .play-page header {
-  min-height: 64px;
-}
-
 :root[data-launcher-theme='vgui2'] .play-queue-actions {
   position: static;
   display: flex;

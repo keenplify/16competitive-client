@@ -1,10 +1,12 @@
-import { useEffect, useId, type JSX } from 'react'
+import { useEffect, type JSX } from 'react'
 import { LoaderCircle, Plus, RotateCcwClock, X } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
 import { useAuthStore } from '../auth/auth.store'
 import { useTranslation } from '../i18n/i18n'
+import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
+import { topUpMethods } from '../../../../shared/payment-preference'
 import { usePaymentsStore } from './payments.store'
 import { PCASH_PER_USDT, usdFromPCash } from '../../../../shared/payments'
 import { ModalDialog } from '../../components/ui/ModalDialog'
@@ -18,37 +20,29 @@ export function PCashTopUpButton({ className }: { className?: string }): JSX.Ele
   const { t } = useTranslation()
   const open = usePaymentsStore((state) => state.open)
   const toggle = usePaymentsStore((state) => state.toggle)
-  const tooltipId = useId()
   return (
-    <span className="group/top-up relative inline-flex shrink-0">
-      <Button
-        variant="ghost"
-        className={twMerge(
-          'size-11 rounded-none px-0 text-amber-200 hover:bg-amber-300/10 hover:text-amber-100 focus-visible:outline-amber-300',
-          className
-        )}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        aria-label={t('payments.topUp')}
-        aria-describedby={tooltipId}
-        aria-controls="p-cash-top-up"
-        onClick={toggle}
-      >
-        <Plus className="size-5" aria-hidden="true" />
-      </Button>
-      <span
-        id={tooltipId}
-        role="tooltip"
-        className="pointer-events-none absolute top-[calc(100%+8px)] right-0 z-50 w-max border border-white/15 bg-neutral-950 px-3 py-2 text-xs font-medium text-white opacity-0 transition-opacity group-hover/top-up:opacity-100 group-focus-within/top-up:opacity-100"
-      >
-        {t('payments.topUp')}
-      </span>
-    </span>
+    <Button
+      variant="ghost"
+      className={twMerge(
+        'h-8 shrink-0 gap-1.5 whitespace-nowrap px-3 py-1 text-amber-200 hover:bg-amber-300/10 hover:text-amber-100',
+        className
+      )}
+      aria-expanded={open}
+      aria-haspopup="dialog"
+      aria-controls="p-cash-top-up"
+      onClick={toggle}
+    >
+      <Plus className="size-4" aria-hidden="true" />
+      {t('payments.topUp')}
+    </Button>
   )
 }
 
 export function PCashTopUpModal({ className }: { className?: string }): JSX.Element | null {
   const { t, language } = useTranslation()
+  const priority = usePartnerBrandingStore(
+    (state) => state.branding?.priorityPaymentMethod ?? state.joinedBranding?.priorityPaymentMethod
+  )
   const ownerId = useAuthStore((state) => state.session?.player.id ?? null)
   const {
     open,
@@ -89,7 +83,7 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
       window.clearInterval(timer)
       window.removeEventListener('focus', onFocus)
     }
-  }, [open, ownerId, load])
+  }, [open, ownerId, load, priority])
   if (!open) return null
   const activeManual = snapshot?.manual?.orders.find((order) => order.id === activeManualId)
   const manualMethod = snapshot?.manual?.methods.find((method) => method.id === methodId)
@@ -161,21 +155,9 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
                 disabled={busy}
                 onChange={(e) => selectMethod(e.target.value)}
               >
-                {(preferredProvider === 'paymongo'
-                  ? ['paymongo', 'paymento']
-                  : ['paymento', 'paymongo']
-                ).map((provider) => (
-                  <option
-                    key={provider}
-                    value={provider}
-                    disabled={provider === 'paymongo' && !snapshot?.paymongo?.enabled}
-                  >
-                    {provider === 'paymongo' ? 'PayMongo · PHP' : 'Paymento · USDT'}
-                  </option>
-                ))}
-                {snapshot?.manual?.methods.map((method) => (
-                  <option key={method.id} value={method.id}>
-                    {method.name} · {method.currency}
+                {topUpMethods(preferredProvider, priority, snapshot).map((method) => (
+                  <option key={method.id} value={method.id} disabled={method.disabled}>
+                    {method.label}
                   </option>
                 ))}
               </select>

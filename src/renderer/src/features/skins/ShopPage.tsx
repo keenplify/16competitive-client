@@ -1,3 +1,4 @@
+import { fundsMessage } from './funds-message'
 import { VirtualGrid } from '../../components/VirtualGrid'
 import { PurchaseSuccess } from '../inventory/PurchaseSuccess'
 import { AttachedStickerLinks } from './AttachedStickerLinks'
@@ -68,7 +69,7 @@ import {
   skinRarityPresentationFor,
   type SkinRarity
 } from './skin-rarity'
-import { PCashTopUpButton, PCashTopUpModal } from './PCashTopUp'
+import { PCashTopUpButton } from './PCashTopUp'
 import { WithdrawButton, WithdrawModal } from './Withdraw'
 import { usePaymentsStore } from './payments.store'
 import { useCommunityCurrency, formatPCashText } from '../partner-branding/use-community-currency'
@@ -204,7 +205,7 @@ export function ShopPage(): JSX.Element {
     }
   }, [])
   useEffect(() => {
-    if (music.error && !music.confirm && music.snapshot) toast.error(t(music.error))
+    if (music.error && !music.confirm && music.snapshot) toast.error(music.error === 'music.insufficient' || music.error === 'music.insufficientCash' ? fundsMessage(t(music.error)) : t(music.error))
   }, [music.error, music.confirm, music.snapshot, t])
   const points = useAuthStore((state) => state.session?.player.points ?? 0)
   const setPoints = useAuthStore((state) => state.setPoints)
@@ -576,7 +577,7 @@ export function ShopPage(): JSX.Element {
               ? 'You need more Papa Cash to unlock this skin.'
               : failure.message
         toast.update(feedback, {
-          render: message,
+          render: failure.code === 'INSUFFICIENT_POINTS' || failure.code === 'INSUFFICIENT_P_CASH' ? fundsMessage(message) : message,
           type: 'error',
           isLoading: false,
           autoClose: 6000
@@ -632,14 +633,13 @@ export function ShopPage(): JSX.Element {
                   {withdrawEnabled && (
                     <WithdrawButton className="size-8" onClick={() => setShowWithdraw(true)} />
                   )}
-                  <PCashTopUpButton className="size-8" />
+                  <PCashTopUpButton />
                 </span>
               }
             />
           </div>
         </header>
 
-        <PCashTopUpModal />
         <WithdrawModal open={showWithdraw} onClose={() => setShowWithdraw(false)} />
 
         <div

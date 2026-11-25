@@ -20,10 +20,12 @@ test(
           loader: 'tsx',
           contents: [
             "import React from 'react';import {createRoot} from 'react-dom/client';import {ToastContainer} from 'react-toastify';",
-            "import {PCashTopUpModal} from './src/renderer/src/features/skins/PCashTopUp';import {usePaymentsStore} from './src/renderer/src/features/skins/payments.store';",
+            "import {PCashTopUpButton,PCashTopUpModal} from './src/renderer/src/features/skins/PCashTopUp';import {usePaymentsStore} from './src/renderer/src/features/skins/payments.store';",
+            "import {usePartnerBrandingStore} from './src/renderer/src/features/partner-branding/partner-branding.store';import {fundsMessage} from './src/renderer/src/features/skins/funds-message';import {toast} from 'react-toastify';window.showFunds=()=>toast.error(fundsMessage('Not enough funds'));window.brand=usePartnerBrandingStore;",
+            "import {PCashStakeView} from './src/renderer/src/features/matchmaking/PCashStakePanel';",
             "window.store=usePaymentsStore;window.fixture={enabled:true,pCash:0,orders:[],manual:{methods:[],orders:[]},paymongo:{enabled:true,currency:'PHP',minorPerUsd:5800,orders:[]}};",
             "window.api={skins:{payments:async()=>fixture,createPayment:async(id,amount,provider)=>{window.called={id,amount,provider};return new Promise((resolve,reject)=>{window.settle=()=>resolve({id});window.fail=()=>reject(new Error('Declined'))})}}};",
-            "createRoot(document.getElementById('root')).render(<><PCashTopUpModal/><ToastContainer className='launcher-toast-container'/></>);setTimeout(()=>store.setState({ownerId:'test',open:true,preferredProvider:'paymongo',methodId:'paymento',methodResolved:false,snapshot:fixture}),0);"
+            "createRoot(document.getElementById('root')).render(<><PCashTopUpButton/><PCashStakeView snapshot={{enabled:true,open:true,bet:null,balance:0}} amount='0' busy={false} disabled={false} error={false} onRetry={()=>{}} onAmount={()=>{}}/><PCashTopUpModal/><ToastContainer className='launcher-toast-container'/></>);setTimeout(()=>store.setState({ownerId:'test',open:true,preferredProvider:'paymongo',methodId:'paymento',methodResolved:false,snapshot:fixture}),0);"
           ].join('\n')
         },
         bundle: true,
@@ -58,7 +60,7 @@ test(
           }
         ]
       })
-      const css = (await readdir('dist-web/assets')).find((n) => /^index-.*\.css$/.test(n))
+      const css = (await readdir('dist-web/assets')).find((n) => /^(?:start-app|index)-.*\.css$/.test(n))
       assert.ok(css, 'build the web CSS first')
       await writeFile(
         join(dir, 'index.html'),
@@ -81,6 +83,12 @@ test(
         "assert.equal(await run('getComputedStyle(document.querySelector(\"dialog\")).borderRadius'),'0px');fs.writeFileSync(" +
           JSON.stringify(join(tmpdir(), '16c-paymongo-')) +
           "+theme+'.png',(await w.webContents.capturePage()).toPNG());}",
+        "await run('store.getState().close();fixture.manual.methods=[{id:\"gcash-id\",name:\"GCash\",currency:\"PHP\",minorPerUsd:5800}];brand.setState({branding:{priorityPaymentMethod:\"gcash-id\"}});showFunds()');await pause();",
+        "await run('[...document.querySelectorAll(\".Toastify__toast button\")].find(b=>b.textContent===\"Top up now\").click()');await pause();assert.equal(await run('document.querySelector(\"select\").value'),'gcash-id');assert.equal(await run('document.querySelector(\"select option\").value'),'gcash-id');",
+        "await run('store.getState().selectMethod(\"paymento\");store.getState().load()');await pause();assert.equal(await run('store.getState().methodId'),'paymento');",
+        "await run('fixture.manual.methods=[];store.setState({methodResolved:false});store.getState().load()');await pause();assert.equal(await run('store.getState().methodId'),'paymongo');",
+        "await run('store.getState().close()');await pause();await run('[...document.querySelectorAll(\"section button\")].find(b=>b.textContent===\"Top up now\").click()');await pause();assert.equal(await run('document.querySelector(\"#p-cash-top-up-title\").closest(\"dialog\").matches(\":modal\")'),true);",
+        "await run('store.getState().close()');await pause();assert.equal(await run('document.querySelector(\"[aria-controls=p-cash-top-up]\").textContent.trim()'), 'Top up');await run('document.querySelector(\"[aria-controls=p-cash-top-up]\").click()');await pause();assert.equal(await run('document.querySelector(\"#p-cash-top-up-title\").closest(\"dialog\").matches(\":modal\")'),true);",
         'w.destroy();app.exit(0);}catch(e){console.error(e);w.destroy();app.exit(1)}});'
       ].join('\n')
       await writeFile(join(dir, 'main.cjs'), main)

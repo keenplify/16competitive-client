@@ -107,7 +107,7 @@ export const useCollectionsStore = create<CollectionsState>((set, get) => ({
     const generation = accountGeneration
     const { selectedId: id, currency } = get()
     if (!id || get().buying || get().request) return
-    set({ quoteStatus: 'loading', quote: null })
+    set({ quoteStatus: 'loading', quote: null, notice: null })
     try {
       const quote = await window.api.skins.collectionQuote(id, currency)
       if (

@@ -1,3 +1,4 @@
+import { TopUpNow } from '../skins/TopUpNow'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { ShoppingCart, X } from 'lucide-react'
 import { useMemo, useState, type JSX } from 'react'
@@ -104,7 +105,7 @@ export function PurchaseConfirmModal({
 
           {!canAfford && selected && (
             <p className="mt-3 text-xs text-rose-300">
-              You do not have enough {selected.currency === 'POINTS' ? 'Points' : 'Papa Cash'}.
+              You do not have enough {selected.currency === 'POINTS' ? 'Points' : 'Papa Cash'}. <TopUpNow />
             </p>
           )}
         </div>

@@ -1,4 +1,5 @@
 .custom-room-board {
+  --room-seat-height: 41px;
   container-type: inline-size;
   background: #0c131c;
   border: 1px solid #ffffff25;
@@ -63,8 +64,12 @@
   border-color: #82aea5;
   background: linear-gradient(105deg, #314b4b, #202e38);
 }
+.room-roster:not([data-tone='spectators']) .room-seats {
+  min-height: calc(5 * var(--room-seat-height));
+  align-content: start;
+}
 .room-seat {
-  min-height: 41px;
+  min-height: var(--room-seat-height);
   border-top: 1px solid #ffffff14;
   font-size: 14px;
 }
@@ -82,11 +87,13 @@
   inset: auto;
   width: 100%;
   max-width: none;
-  height: 12rem;
+  height: 100%;
   z-index: auto;
 }
 .room-chat-dock {
+  align-self: stretch;
   min-width: 0;
+  min-height: 16rem;
 }
 :root[data-launcher-theme='vgui2'] .custom-room-board {
   --vgui-face: #283848;

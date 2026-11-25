@@ -1,3 +1,4 @@
+import { TopUpNow } from '../skins/TopUpNow'
 import {
   backendMode,
   customModeLabel,
@@ -210,7 +211,7 @@ export function CreateCustomGameModal({
             <p className="text-sm text-neutral-400">{t('customGames.automaticHint')}</p>
           )}
           <p className="h-10 overflow-y-auto text-sm text-red-400" aria-live="polite">
-            {error}
+            {error} {error === t('customRoom.betInsufficient') && <TopUpNow />}
           </p>
 
           <footer className="mt-2 flex justify-end gap-3 border-t border-white/10 pt-5">

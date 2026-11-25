@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { fundsMessage } from './funds-message'
+import { toast } from 'react-toastify'
+import { useEffect, useState } from 'react'
 import { ArrowLeft, LoaderCircle } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { ConfirmationDialog } from '../../components/ui/ConfirmationDialog'
@@ -62,6 +64,17 @@ export function CollectionPage() {
   const state = useCollectionsStore()
   const t = useCollectionText()
   const [item, setItem] = useState<{ skin: Skin; currency: SkinCurrency } | null>(null)
+  const fundsNotice = state.notice === 'insufficient' ? t('insufficient') : null
+  useEffect(() => {
+    if (!fundsNotice) return
+    const id = toast.error(
+      fundsMessage(fundsNotice, () => toast.dismiss(id)),
+      { autoClose: false }
+    )
+    return () => {
+      toast.dismiss(id)
+    }
+  }, [fundsNotice])
   const collection = state.detail?.collection
   const uncertain = state.request?.id === state.selectedId
   return (
@@ -81,9 +94,6 @@ export function CollectionPage() {
             role="status"
           >
             <p>{t(state.status === 'error' ? 'unavailable' : 'loading')}</p>
-            {state.status === 'error' && (
-              <Button onClick={() => void state.open(state.selectedId!)}>{t('retry')}</Button>
-            )}
           </div>
         ) : (
           <>
@@ -158,16 +168,30 @@ export function CollectionPage() {
                 <p className="mt-3 min-h-14 text-xs leading-5 text-neutral-300">{t('quoteHint')}</p>
                 <Button
                   className="mt-3 h-11 w-full"
-                  disabled={state.buying || (!state.quote && !uncertain)}
-                  onClick={() => (uncertain ? void state.buy() : state.confirm(true))}
+                  disabled={
+                    state.buying ||
+                    state.quoteStatus === 'loading' ||
+                    (!state.quote && (state.notice === 'owned' || state.notice === 'success'))
+                  }
+                  onClick={async () => {
+                    if (uncertain) return state.buy()
+                    if (!state.quote) await state.refreshQuote()
+                    const current = useCollectionsStore.getState()
+                    if (
+                      current.selectedId === state.selectedId &&
+                      current.currency === state.currency &&
+                      current.quote
+                    )
+                      current.confirm(true)
+                  }}
                 >
                   {state.buying ? (
                     <LoaderCircle className="size-4 animate-spin" aria-label={t('pending')} />
                   ) : (
-                    t(uncertain ? 'retry' : 'buyPackage')
+                    t('buyPackage')
                   )}
                 </Button>
-                <div className="mt-3 min-h-20 text-sm leading-6" role="status">
+                <div className="text-sm leading-6" role="status">
                   <p
                     className={
                       state.notice === 'success' || state.notice === 'owned'
@@ -175,17 +199,8 @@ export function CollectionPage() {
                         : 'text-amber-200'
                     }
                   >
-                    {state.notice ? t(state.notice) : ''}
+                    {state.notice && !fundsNotice ? t(state.notice) : ''}
                   </p>
-                  {!uncertain && state.quoteStatus === 'error' && state.notice !== 'owned' && (
-                    <Button
-                      variant="ghost"
-                      className="mt-1"
-                      onClick={() => void state.refreshQuote()}
-                    >
-                      {t('retry')}
-                    </Button>
-                  )}
                 </div>
               </section>
             </div>
@@ -211,7 +226,7 @@ export function CollectionPage() {
             confirmLabel={t('confirm')}
             closeLabel={t('cancel')}
             busy={state.buying}
-            error={state.notice ? t(state.notice) : undefined}
+            error={state.notice && !fundsNotice ? t(state.notice) : undefined}
             onClose={() => {
               state.confirm(false)
               setItem(null)

@@ -116,7 +116,7 @@ export function RoomRoster({
           </div>
         )}
       </header>
-      <div className={maximum === 16 ? 'grid sm:grid-cols-2' : ''}>
+      <div className={maximum === 16 ? 'room-seats grid sm:grid-cols-2' : 'room-seats'}>
         {Array.from({ length: capacity }, (_, index) => {
           const member = members[index]
           return member ? (

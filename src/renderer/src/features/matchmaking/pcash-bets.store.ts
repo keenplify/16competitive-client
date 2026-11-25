@@ -1,3 +1,4 @@
+import { fundsMessage } from '../skins/funds-message'
 import { usePaymentsStore } from '../skins/payments.store'
 import { create } from 'zustand'
 import { toast } from 'react-toastify'
@@ -138,7 +139,7 @@ export const usePCashBetsStore = create<BetState>((set, get) => ({
                   ? 'bet.unavailable'
                   : 'bet.loadError'
       toast.update(notice, {
-        render: t(confirmed ? 'bet.placed' : key),
+        render: !confirmed && key === 'bet.insufficient' ? fundsMessage(t(key)) : t(confirmed ? 'bet.placed' : key),
         type: confirmed ? 'success' : 'error',
         isLoading: false,
         autoClose: 7000
