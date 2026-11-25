@@ -1,5 +1,9 @@
 # Changelog
 
+## v2026.1125.8
+
+- Winter FFA kill notices now show the snowball or powerup that landed the killing hit.
+
 All notable changes to 1.6 Competitive Launcher are documented here.
 
 ## v2026.904.6 — 2026-09-04
