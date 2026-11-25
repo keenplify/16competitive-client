@@ -5182,3 +5182,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - No release-note details were provided.
+
+## v2026.1125.7 — 2026-11-25
+
+### Changes
+
+- No player-facing changes were provided.
