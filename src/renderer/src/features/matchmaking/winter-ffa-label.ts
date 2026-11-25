@@ -19,8 +19,10 @@ export function supportsChoice(map: MatchmakingMap, choice: RoomModeChoice): boo
 
 export function roomModeChoices(modes: CustomGameMode[], maps: MatchmakingMap[]): RoomModeChoice[] {
   return modes.flatMap((mode): RoomModeChoice[] => {
-    if (mode !== 'ffa' || !maps.some((map) => supportsChoice(map, 'winter_ffa'))) return [mode]
-    return maps.some((map) => supportsChoice(map, 'ffa')) ? ['winter_ffa', 'ffa'] : ['winter_ffa']
+    if (mode !== 'ffa') return [mode]
+    return (['winter_ffa', 'ffa'] as const).filter((choice) =>
+      maps.some((map) => supportsChoice(map, choice))
+    )
   })
 }
 

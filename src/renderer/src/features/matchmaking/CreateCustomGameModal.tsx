@@ -159,7 +159,7 @@ export function CreateCustomGameModal({
                 }}
               >
                 {!modeAvailable && (
-                  <option value={mode} disabled>
+                  <option value={mode} disabled hidden>
                     {t(customModeLabel(mode))}
                   </option>
                 )}

@@ -35,7 +35,7 @@ async function formHarness(
       }
     }
   ).outputText
-  const state = { selectedMode, customModes: [...modes] }
+  const state = { selectedMode, mapsStatus: 'ready', customModes: [...modes] }
   const submitted = []
   const room = { id: 'room', name: 'Existing room', mode: roomMode, mapId: 'de_mirage' }
   const roomState = {
@@ -179,6 +179,7 @@ for (const component of ['CreateCustomGameModal', 'RoomSettingsModal']) {
 
 test('existing actual CS 1.3 room remains saveable while its catalog is unavailable', async () => {
   const h = await formHarness('RoomSettingsModal', 'cs13_3v3', 'cs13_3v3', true)
+  h.state.mapsStatus = 'error'
   h.state.customModes = []
   const tree = h.render([])
   const save = find(tree, (node) => node.props?.type === 'submit')
@@ -188,6 +189,19 @@ test('existing actual CS 1.3 room remains saveable while its catalog is unavaila
   assert.equal(h.submitted[0].mapId, 'de_mirage')
   assert.equal(h.submitted[0].legacyMode, false)
 })
+
+for (const component of ['CreateCustomGameModal', 'RoomSettingsModal']) {
+  test(component + ' only offers partner-enabled room modes and FFA variants', async () => {
+    const h = await formHarness(component, 'unrated', 'arena')
+    h.state.customModes = ['unrated', 'ffa']
+    const tree = h.render([...maps, { id: 'cs_office', customModes: ['ffa'] }])
+    const offered = (value) =>
+      find(tree, (n) => n.type === 'option' && n.props.value === value && !n.props.disabled)
+    assert.ok(offered('winter_ffa'))
+    assert.ok(offered('unrated'))
+    for (const hidden of ['ffa', 'arena', 'cs13_3v3']) assert.equal(offered(hidden), null)
+  })
+}
 
 for (const component of ['CreateCustomGameModal', 'RoomSettingsModal']) {
   test(component + ' offers Winter FFA from Unranked and submits a winter map', async () => {

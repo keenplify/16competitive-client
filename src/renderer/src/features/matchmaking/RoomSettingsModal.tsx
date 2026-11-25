@@ -62,6 +62,7 @@ export function RoomSettingsModal({
   const error = useCustomGamesStore((state) => state.error)
   const betting = useCustomGamesStore((state) => state.betting)
   const enabledModes = useMatchmakingStore((state) => state.customModes)
+  const catalogUnavailable = useMatchmakingStore((state) => state.mapsStatus !== 'ready')
   const [name, setName] = useState(room.name)
   const [mode, setMode] = useState<RoomModeChoice>(roomModeChoice(room.mode, room.mapId))
   const [mapId, setMapId] = useState(room.mapId)
@@ -81,7 +82,7 @@ export function RoomSettingsModal({
   )
   const selectedMode = backendMode(mode)
   const currentChoice = roomModeChoice(room.mode, room.mapId)
-  if (!modes.includes(currentChoice)) modes.push(currentChoice)
+  if (catalogUnavailable && !modes.includes(currentChoice)) modes.push(currentChoice)
   const modeAvailable = modes.includes(mode)
   const allowsLegacyMode = mode !== 'cs13_3v3' && mode !== 'cs13_1v1'
   const allowsMoney = selectedMode !== 'ffa' && selectedMode !== 'arena'
@@ -100,12 +101,10 @@ export function RoomSettingsModal({
     (Number.isInteger(Number(startingMoney)) &&
       Number(startingMoney) >= 800 &&
       Number(startingMoney) <= 16000)
-  const availableMaps = maps.filter(
-    (map) => supportsChoice(map, mode) || (mode === currentChoice && map.id === room.mapId)
-  )
+  const availableMaps = maps.filter((map) => supportsChoice(map, mode))
   const selectedMapId = mapId
   const mapAvailable =
-    (mode === currentChoice && selectedMapId === room.mapId) ||
+    (catalogUnavailable && mode === currentChoice && selectedMapId === room.mapId) ||
     availableMaps.some((map) => map.id === selectedMapId)
 
   return (
@@ -180,7 +179,7 @@ export function RoomSettingsModal({
                 }}
               >
                 {!modeAvailable && (
-                  <option value={mode} disabled>
+                  <option value={mode} disabled hidden>
                     {t(customModeLabel(mode))}
                   </option>
                 )}
