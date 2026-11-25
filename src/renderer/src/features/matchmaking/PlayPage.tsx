@@ -709,7 +709,7 @@ export function PlayPage({
                   {connectionLabels[connectionStatus]}
                 </span>
               </div>
-              <div className="w-40 max-w-full">
+              <div className="w-56 max-w-full">
                 <MatchmakingRegionSelect
                   id="play-region"
                   ariaLabel={
