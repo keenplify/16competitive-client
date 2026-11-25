@@ -20,6 +20,7 @@ interface PartnerBrandingState {
   currency: CommunityCurrency | null
   /** VIP membership for the signed-in account (member-only). */
   vip: PartnerVipView | null
+  vipResolved: boolean
   resolved: boolean
   enabled: boolean
   refresh: (accountId: string | null) => Promise<void>
@@ -35,6 +36,7 @@ export const usePartnerBrandingStore = create<PartnerBrandingState>((set) => ({
   joinedBranding: null,
   currency: null,
   vip: null,
+  vipResolved: false,
   resolved: false,
   enabled: readPreference(),
   refresh: async (accountId) => {
@@ -42,13 +44,13 @@ export const usePartnerBrandingStore = create<PartnerBrandingState>((set) => ({
     set((state) =>
       state.accountId === accountId
         ? state
-        : { accountId, branding: null, joinedBranding: null, currency: null, vip: null, resolved: false }
+        : { accountId, branding: null, joinedBranding: null, currency: null, vip: null, vipResolved: false, resolved: false }
     )
     try {
       const joinedRequest =
         accountId && window.api.partnerBranding.getJoined
           ? window.api.partnerBranding.getJoined().catch(() => null)
-          : Promise.resolve({ branding: null, currency: null, vip: null })
+          : Promise.resolve(null)
       const result = await window.api.partnerBranding.get()
       const joined = await joinedRequest
       if (serial === requestSerial)
@@ -56,19 +58,19 @@ export const usePartnerBrandingStore = create<PartnerBrandingState>((set) => ({
           accountId,
           branding: result.branding,
           currency: result.currency ?? null,
-          vip: result.vip ?? null,
+          ...(joined ? { vip: joined.vip ?? null, vipResolved: true } : { vipResolved: false }),
           ...(joined ? { joinedBranding: joined.branding } : {}),
           resolved: true
         })
     } catch {
       // Keep the last verified palette during a transient connection failure.
       // A new account is always cleared before its own request starts.
-      if (serial === requestSerial) set({ resolved: true })
+      if (serial === requestSerial) set({ resolved: true, vipResolved: false })
     }
   },
   clear: () => {
     requestSerial++
-    set({ accountId: null, branding: null, joinedBranding: null, currency: null, vip: null, resolved: false })
+    set({ accountId: null, branding: null, joinedBranding: null, currency: null, vip: null, vipResolved: false, resolved: false })
   },
   setEnabled: (enabled) => {
     try {

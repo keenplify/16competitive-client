@@ -137,6 +137,7 @@ export function CustomGamesPanel({
   const savingSettings = useCustomGamesStore((state) => state.savingSettings)
   const joinRoom = useCustomGamesStore((state) => state.joinRoom)
   const vip = usePartnerBrandingStore((state) => state.vip)
+  const vipResolved = usePartnerBrandingStore((state) => state.vipResolved)
   const communityName = usePartnerBrandingStore((state) => state.branding?.communityName)
   const vipLocked = vip?.customGamesVipOnly === true && !vip.active
   const leaveRoom = useCustomGamesStore((state) => state.leaveRoom)
@@ -472,7 +473,7 @@ export function CustomGamesPanel({
               <div className="flex items-center gap-2">
                 <FindMatchButton
                   className="h-8 min-w-0 gap-1.5 px-3 text-xs font-semibold tracking-normal normal-case"
-                  disabled={disabled}
+                  disabled={disabled || !vipResolved || vipLocked}
                   onClick={openCreateModal}
                 >
                   <Plus className="size-4" aria-hidden="true" />
@@ -683,7 +684,7 @@ export function CustomGamesPanel({
       {editable && settingsModalOpen && room && (
         <RoomSettingsModal key={room.id} room={room} maps={maps} disabled={disabled} />
       )}
-      {createModalOpen && (
+      {createModalOpen && vipResolved && !vipLocked && (
         <CreateCustomGameModal maps={maps} selectedNodeId={selectedNodeId} disabled={disabled} />
       )}
       {passwordRoom && (

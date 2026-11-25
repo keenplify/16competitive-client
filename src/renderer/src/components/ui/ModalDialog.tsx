@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { ModalPortal } from './ModalPortal'
+import { registerToastDialog } from './ModalToastLayer'
 import { ChevronLeft, X } from 'lucide-react'
 import { useEffectiveLauncherTheme } from '../../features/settings/use-effective-launcher-theme'
 import { useTranslation } from '../../features/i18n/i18n'
@@ -90,8 +91,10 @@ export function ModalDialog({
       document.activeElement instanceof HTMLElement ? document.activeElement : null
     const unlockBody = lockBody()
     dialog.showModal()
+    const releaseToasts = registerToastDialog(dialog)
     initialFocusRef?.current?.focus({ preventScroll: true })
     return () => {
+      releaseToasts()
       dialog.close()
       unlockBody()
       if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true })

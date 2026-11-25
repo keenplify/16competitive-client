@@ -23,6 +23,7 @@ import { VoiceChatDock } from './features/voice/VoiceChatDock'
 import { PartnerThemeController } from './features/partner-branding/PartnerThemeController'
 import { PartnerSessionController } from './features/partner-branding/PartnerSessionController'
 import { Slide, ToastContainer } from 'react-toastify'
+import { ModalToastLayer } from './components/ui/ModalToastLayer'
 import 'react-toastify/dist/ReactToastify.css'
 import './assets/toast.css'
 import { useEffect } from 'react'
@@ -63,14 +64,16 @@ function App({ preserveMusic = false, partnerSignInOnly = false }: {
         <RewardInboxController />
         <VoiceChatDock />
         <AuthLanguageOverlay />
-        <ToastContainer
-          position="top-left"
-          theme="dark"
-          autoClose={3_500}
-          style={{ marginTop: '4rem' }}
-          transition={Slide}
-          className="launcher-toast-container"
-        />
+        <ModalToastLayer>
+          <ToastContainer
+            position="top-left"
+            theme="dark"
+            autoClose={3_500}
+            style={{ marginTop: '4rem' }}
+            transition={Slide}
+            className="launcher-toast-container"
+          />
+        </ModalToastLayer>
         <AuthPage partnerSignInOnly={partnerSignInOnly} />
         <ProfileOverlay />
         <MatchDetailsOverlay />
