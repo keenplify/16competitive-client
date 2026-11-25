@@ -5146,3 +5146,25 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### PCash Bets
 
 - PCash bet fees are now deducted from the stake instead of the 2× return.
+
+## v2026.1125.4 — 2026-11-25
+
+### Payments
+
+- Added convenient top-up actions.
+- Added preferred payment method support.
+- Improved payment and purchase feedback.
+
+### Play
+
+- Refined Play layouts for a more compact experience.
+- Added clearer PCash stake and room controls.
+
+### Custom Rooms
+
+- Room creation now uses verified partner VIP status.
+- Added clearer modal notifications for room actions.
+
+### Partner Branding
+
+- Improved compatibility for partner branding when payment priority is unavailable.
