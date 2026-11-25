@@ -475,7 +475,10 @@ function parseProgress(value: unknown): SkinAssetSyncProgress {
 export async function nativeAssetStatus(): Promise<SkinAssetSyncProgress> {
   return parseProgress(await localRequest({ action: 'assetStatus' }))
 }
-export async function syncNativeAssets(mode: 'download' | 'repair' = 'download'): Promise<void> {
+export async function syncNativeAssets(
+  mode: 'download' | 'repair' = 'download',
+  game = usePartnerGamePreferenceStore.getState().game ?? undefined
+): Promise<void> {
   const token = getWebSessionToken()
   if (!token) throw new Error('Authentication required')
   let progress = parseProgress(
@@ -484,7 +487,7 @@ export async function syncNativeAssets(mode: 'download' | 'repair' = 'download')
       apiOrigin: currentApiOrigin(),
       token,
       repair: mode === 'repair',
-      game: usePartnerGamePreferenceStore.getState().game ?? undefined
+      game
     })
   )
   const deadline = Date.now() + 60 * 60 * 1000

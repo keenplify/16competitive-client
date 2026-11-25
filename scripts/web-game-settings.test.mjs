@@ -21,10 +21,10 @@ function harness() {
       if (name === '../shared/early-asset-sync') return { createEarlyAssetSync }
       if (name === './local-play')
         return {
-          syncNativeAssets: async (mode) => { syncs.push({ folder, mode }) },
+          syncNativeAssets: async (mode, game) => { syncs.push({ mode, game }) },
           nativeHelperSettings: async () => {
             if (!available) throw new Error('Helper stopped')
-            return { cs16FolderPath: folder, platform: 'linux', voicePttKeys: ['K', 'V'] }
+            return { cs16FolderPath: folder, cs13FolderPath: '/games/cs13', platform: 'linux', voicePttKeys: ['K', 'V'] }
           }
         }
       if (name === './browser-matchmaking')
@@ -42,6 +42,7 @@ function harness() {
   )
   return {
     api: window.api.gameSettings,
+    helperSettings: window.api.matchmaking.nativeHelperSettings,
     syncs,
     stop: () => {
       available = false
@@ -77,10 +78,24 @@ test('an available helper remains authoritative when its installation is cleared
   assert.equal((await h.api.get()).cs16FolderPath, null)
 })
 
-test('knowing the helper folder prepares assets before any matchmaking action', async () => {
+test('reopening the web client with a configured installation does not start a catalog sync', async () => {
+  for (const h of [harness(), harness()]) {
+    await h.api.get()
+    await h.helperSettings({ action: 'get' })
+    assert.deepEqual(h.syncs, [])
+  }
+})
+
+test('folder setup prepares the selected game once, while manual repair stays available', async () => {
   const h = harness()
-  await h.api.get()
-  await h.api.get()
-  await Promise.resolve()
-  assert.deepEqual(h.syncs, [{ folder: '/games/cs16', mode: 'download' }])
+  await h.api.chooseFolder()
+  await h.api.save('/games/cs16')
+  await h.helperSettings({ action: 'choose', game: 'cs13' })
+  await new Promise((resolve) => setImmediate(resolve))
+  await h.api.syncAssets('repair')
+  assert.deepEqual(h.syncs, [
+    { mode: 'download', game: 'cs16' },
+    { mode: 'download', game: 'cs13' },
+    { mode: 'repair', game: undefined }
+  ])
 })

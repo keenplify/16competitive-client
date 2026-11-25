@@ -78,7 +78,7 @@ import {
   nativeCompatibilityUpload,
   launchPartnerWithNativeHelper
 } from './local-play'
-import type { NativeHelperSettings } from '../shared/native-helper-settings'
+import type { NativeHelperSettings, NativeHelperSettingsRequest } from '../shared/native-helper-settings'
 import type { DailyQuestSnapshot } from '../shared/daily-quests'
 import type { FriendChatMessage, FriendSearchResult, FriendsSnapshot } from '../shared/friends'
 import type { GameSettings, SkinAssetSyncProgress } from '../shared/game-settings'
@@ -227,10 +227,15 @@ const authenticatedGet = <T>(path: string): Promise<T> =>
   requestJson<T>(path, { authenticated: true })
 
 const earlyHelperAssetSync = createEarlyAssetSync()
-function prepareHelperAssets(settings: GameSettings): void {
-  void earlyHelperAssetSync(settings.cs16ExecutablePath, getWebSessionToken(), () =>
-    syncNativeAssets('download')
-  ).catch((error: unknown) => console.warn('[GameSettings] early helper asset sync failed', error))
+async function webHelperSettings(request: NativeHelperSettingsRequest): Promise<NativeHelperSettings> {
+  const settings = await nativeHelperSettings(request)
+  if (request.action === 'choose' || request.action === 'select') {
+    const folder = request.game === 'cs13' ? settings.cs13FolderPath : settings.cs16FolderPath
+    void earlyHelperAssetSync(folder && `${request.game}:${folder}`, getWebSessionToken(), () =>
+      syncNativeAssets('download', request.game)
+    ).catch((error: unknown) => console.warn('[GameSettings] early helper asset sync failed', error))
+  }
+  return settings
 }
 
 let lastHelperSettings: { accountToken: string | null; settings: GameSettings } | null = null
@@ -1145,7 +1150,6 @@ const api: Window['api'] = {
       try {
         local = await nativeHelperSettings({ action: 'get' })
         settings = helperGameSettings(local)
-        prepareHelperAssets(settings)
       } catch {
         // A stopped/blocked helper must not erase the folder just selected in
         // this account's session. Readiness still gates competitive actions.
@@ -1176,7 +1180,7 @@ const api: Window['api'] = {
       return settings
     },
     async chooseFolder() {
-      return (await nativeHelperSettings({ action: 'choose', game: 'cs16' })).cs16FolderPath
+      return (await webHelperSettings({ action: 'choose', game: 'cs16' })).cs16FolderPath
     },
     async installNextClient() {
       await nativeNextClient(true)
@@ -1189,11 +1193,7 @@ const api: Window['api'] = {
     },
     onNextClientInstallProgress: onNativeInstallerProgress,
     async save(folderPath) {
-      const settings = helperGameSettings(
-        await nativeHelperSettings({ action: 'select', game: 'cs16', folderPath })
-      )
-      prepareHelperAssets(settings)
-      return settings
+      return helperGameSettings(await webHelperSettings({ action: 'select', game: 'cs16', folderPath }))
     },
     async setVoicePttKey(key) {
       const [team, partyKey] = getPttKeys()
@@ -1272,7 +1272,7 @@ const api: Window['api'] = {
     }
   },
 
-  matchmaking: browserMatchmakingApi,
+  matchmaking: { ...browserMatchmakingApi, nativeHelperSettings: webHelperSettings },
 
   matchHistory: {
     async get(): Promise<MatchHistoryEntry[]> {
