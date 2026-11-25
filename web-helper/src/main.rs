@@ -961,14 +961,16 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     #[cfg(windows)]
     if connection.game() == "cs16" { windows_native::prepare_permissions(&root)?; }
     #[cfg(windows)]
-    if connection.game() == "cs13" {
-        won_native::prepare_launch(&root, &mod_dir)?;
+    let won_enhanced = if connection.game() == "cs13" {
+        let mode = won_native::prepare_launch(&root, &mod_dir)?;
+        let source_mod = mod_dir.clone();
         mod_dir = cs13_installation::prepare(&root, &mod_dir).map_err(|error| {
             if error.contains("(os error 5)") { "WON_REPAIR_ELEVATION_REQUIRED".into() } else { error }
         })?;
         // Preparation can select/create the server's cstrk13 directory.
-        won_native::prepare_launch(&root, &mod_dir)?;
-    }
+        let final_mode = if source_mod == mod_dir { mode } else { won_native::prepare_launch(&root, &mod_dir)? };
+        mode == won_native::LaunchMode::Enhanced && final_mode == won_native::LaunchMode::Enhanced
+    } else { false };
     let voice_ownership = session_mode::VoiceOwnership::start(&user_config_dir()?, &connection.match_id).map_err(|e| desktop_session::preparation_error(&e, "VOICE_OWNERSHIP_FAILED"))?;
     let _native_mode = session_mode::Lease::native_wait(&user_config_dir()?).map_err(|e| desktop_session::preparation_error(&e, "NATIVE_LEASE_FAILED"))?;
     let preferences = settings_bridge::load().map_err(|e| desktop_session::preparation_error(&e, "SETTINGS_READ_FAILED"))?.settings;
@@ -1098,7 +1100,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         }
     }
     #[cfg(windows)]
-    if connection.game() == "cs13" {
+    if won_enhanced {
         auth = Some(cs13_auth_file(&game_dir, connection)?);
         let installation = won_native::WonInstall::install(&root, &mod_dir, &scanner_bundle, auth.as_ref().unwrap())?;
         won_install = Some(installation);

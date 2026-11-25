@@ -14,6 +14,7 @@ import { FindMatchButton, PlayQueueActions } from './FindMatchButton'
 import { SelectField } from '../../components/ui/SelectField'
 import { PartnerServersPanel } from '../partner-branding/PartnerServersPanel'
 import { useCommunityText } from '../partner-branding/community-copy'
+import { usePartnerSessionText } from '../partner-branding/partner-session-copy'
 import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 import { useEffect, useState, type JSX } from 'react'
 import { CircleHelp, Copy, LoaderCircle, LogOut } from 'lucide-react'
@@ -76,6 +77,7 @@ export function PlayPage({
   const hideDesktopOnlyFeatures = webRuntime && desktopAppUrl === null
   const { t, language } = useTranslation()
   const communityText = useCommunityText()
+  const sessionText = usePartnerSessionText()
   const branding = usePartnerBrandingStore((state) => state.branding)
   const player = useAuthStore((state) => state.session?.player)
   const partnerSession = usePartnerPresenceStore((state) => state.presence)
@@ -336,6 +338,7 @@ export function PlayPage({
   const manualConnectionAllowed =
     allowsManualMatchConnection(match?.mode) ||
     (isCs16RankedMode(match?.mode) && maps.some((map) => map.webModes.includes(match.mode)))
+  const webLaunchAllowed = manualConnectionAllowed || nativeCompetitiveReady
   const availableMaps = maps.filter(
     (map) =>
       map.supportedModes.includes(selectedMode) &&
@@ -497,13 +500,13 @@ export function PlayPage({
                     {t('ffa.leave')}
                   </Button>
                 )}
-              {(!hideDesktopOnlyFeatures || manualConnectionAllowed) && (
+              {(!hideDesktopOnlyFeatures || webLaunchAllowed) && (
                 <FindMatchButton
                   className="h-11 w-full min-w-0 px-4 text-sm font-semibold tracking-normal normal-case"
                   disabled={
                     reconnectingGame ||
                     (webRuntime
-                      ? !manualConnectionAllowed || !retryWindowOpen
+                      ? !webLaunchAllowed || !retryWindowOpen
                       : !gameExited || !retryWindowOpen)
                   }
                   aria-busy={reconnectingGame}
@@ -517,8 +520,8 @@ export function PlayPage({
                   )}
                   <span className="relative z-10">
                     {webRuntime
-                      ? manualConnectionAllowed
-                        ? 'Launch Counter-Strike'
+                      ? webLaunchAllowed
+                        ? sessionText('launch')
                         : 'Use desktop launcher for ranked'
                       : gameExited
                         ? retryWindowOpen

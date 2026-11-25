@@ -15,16 +15,34 @@ fn repair_error(error: std::io::Error) -> String {
 
 /// Explicit match launch authorizes replacement of this exact supported game.
 /// No recursive attribute changes, ACL rewriting, or arbitrary game-file repair.
-pub(crate) fn prepare_launch(root: &Path, game: &str) -> Result<(), String> {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum LaunchMode { Enhanced, Stock }
+
+pub(crate) fn prepare_launch(root: &Path, game: &str) -> Result<LaunchMode, String> {
     use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
     if !matches!(game, "cstrike" | "cstrk13") { return Err("Invalid WON mod directory".into()); }
     for directory in [root.to_path_buf(), root.join(game), root.join(game).join("cl_dlls")] {
         for ancestor in directory.ancestors() { ordinary_directory(ancestor)?; }
     }
     if digest(&read_limited(&root.join(game).join("cl_dlls/client.dll"), 32*1024*1024)?) != CLIENT
-        || !ENGINES.contains(&digest(&read_limited(&root.join("hl.exe"), 32*1024*1024)?).as_str())
         || digest(&read_limited(&root.join("hw.dll"), 32*1024*1024)?) != OPENGL {
         return Err("Unsupported WON installation; automatic repair refused".into());
+    }
+    if !ENGINES.contains(&digest(&read_limited(&root.join("hl.exe"), 32*1024*1024)?).as_str()) {
+        // An unfamiliar launcher can run the original game with the normal
+        // match authentication file. Never resume an interrupted module install here.
+        let managed = root.join("16competitive");
+        for path in [managed.join("cosmetic-install.json"), managed.join("recovery.json"),
+            managed.join("nextclient-install.json"), managed.join("won-hw.original.dll"),
+            managed.join("won-hw.pending.dll"), root.join(game).join("cl_dlls/16cmod.dll"),
+            root.join(game).join("cl_dlls/16cmod.dll.16competitive.tmp")] {
+            match fs::symlink_metadata(path) {
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+                Err(error) => return Err(repair_error(error)),
+                Ok(_) => return Err("Existing WON installation needs recovery before launch".into()),
+            }
+        }
+        return Ok(LaunchMode::Stock);
     }
     crate::owned_game::Startup::prepare_replacing(&root.join("hl.exe"), &root.join(game))?;
     let engine = root.join("hw.dll");
@@ -55,7 +73,7 @@ pub(crate) fn prepare_launch(root: &Path, game: &str) -> Result<(), String> {
         drop(file);
         fs::remove_file(path).map_err(repair_error)?;
     }
-    Ok(())
+    Ok(LaunchMode::Enhanced)
 }
 pub struct WonInstall { root: PathBuf, helper: PathBuf, id: String, guard: Option<Child> }
 fn recovery_failure(mode: &str, code: Option<i32>, stderr: &[u8]) -> String {
@@ -168,6 +186,23 @@ impl WonInstall {
 #[cfg(test)]
 mod tests {
     use super::recovery_failure;
+    #[test]
+    #[ignore = "requires an isolated copy of a partner WON installation"]
+    fn partner_engine_uses_stock_launch_and_refuses_pending_recovery() {
+        use super::*;
+        let source = PathBuf::from(std::env::var_os("SIXTEEN_WON_TEST_ROOT").unwrap());
+        let root = std::env::temp_dir().join(format!("won-stock-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(root.join("cstrike/cl_dlls")).unwrap();
+        for file in ["hl.exe", "hw.dll", "cstrike/cl_dlls/client.dll"] {
+            fs::copy(source.join(file), root.join(file)).unwrap();
+        }
+        assert_eq!(prepare_launch(&root, "cstrike").unwrap(), LaunchMode::Stock);
+        assert!(!root.join("16competitive").exists());
+        fs::create_dir(root.join("16competitive")).unwrap();
+        fs::write(root.join("16competitive/recovery.json"), b"pending").unwrap();
+        assert!(prepare_launch(&root, "cstrike").unwrap_err().contains("recovery"));
+        fs::remove_dir_all(root).unwrap();
+    }
     #[test]
     #[ignore = "requires an explicitly selected, supported WON fixture"]
     fn supported_won_install_with_authentication_and_live_guard() {
