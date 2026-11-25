@@ -86,17 +86,20 @@ function MusicCueRow({
     kit,
     event: events.find((e) => kit?.sounds[e])
   })
-  const options: CueOption[] = [
-    { value: '__off', label: t('music.mixOff') },
-    {
+  const options: CueOption[] = [{ value: '__off', label: t('music.mixOff') }]
+  const selectedPreview = preview(selected)
+  if (selected && selectedPreview.event) {
+    options.push({
       value: '__selected',
-      label: t('music.mixSelected', { name: selected?.name ?? t('music.empty') }),
-      ...preview(selected)
-    },
-    ...kits
-      .filter((k) => k.id !== selected?.id && events.some((e) => k.sounds[e]))
-      .map((k) => ({ value: k.id, label: k.name, ...preview(k) }))
-  ]
+      label: t('music.mixSelected', { name: selected.name }),
+      ...selectedPreview
+    })
+  }
+  for (const kit of kits) {
+    if (kit.id === selected?.id) continue
+    const sound = preview(kit)
+    if (sound.event) options.push({ value: kit.id, label: kit.name, ...sound })
+  }
   const value =
     options.find(
       (o) =>
@@ -174,9 +177,7 @@ export function MusicKitMixer({ team }: { team: MusicTeam }): JSX.Element | null
     },
     [team]
   )
-  const selected = snapshot?.kits.find(
-    (k) => k.id === (snapshot.mix?.cues.mvp ?? snapshot.equipped[team])
-  )
+  const selected = snapshot?.kits.find((k) => k.id === snapshot.equipped[team])
   const kits = snapshot?.kits.filter((k) => k.enabled && snapshot.ownedIds.includes(k.id)) ?? []
   return (
     <ModalDialog
