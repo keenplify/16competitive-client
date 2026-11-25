@@ -598,24 +598,11 @@ export function PlayPage({
       data-custom-game-room={visiblePlayView === 'custom' && currentCustomRoom ? '' : undefined}
       data-custom-game-browser={visiblePlayView === 'custom' && !currentCustomRoom ? '' : undefined}
       className={twMerge(
-        'play-page relative min-h-0 p-3 text-white sm:p-4',
-        visiblePlayView !== 'custom'
-          ? 'flex h-full flex-col overflow-hidden pb-20 sm:pb-20'
-          : 'min-h-[calc(100vh-5rem)]',
-        visiblePlayView === 'custom' &&
-          !currentCustomRoom &&
-          'lg:h-[calc(100vh-5rem)] lg:overflow-hidden'
+        'play-page relative flex h-full min-h-0 flex-col overflow-hidden p-3 text-white sm:p-4',
+        visiblePlayView !== 'custom' && 'pb-20 sm:pb-20'
       )}
     >
-      <div
-        className={twMerge(
-          'mx-auto w-full max-w-7xl',
-          visiblePlayView !== 'custom' && 'flex h-full min-h-0 flex-col',
-          visiblePlayView === 'custom' &&
-            !currentCustomRoom &&
-            'lg:flex lg:h-full lg:min-h-0 lg:flex-col'
-        )}
-      >
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col">
         <header className="flex shrink-0 flex-col gap-2 md:flex-row md:items-end md:gap-4">
           <TabList
             className="min-w-0 flex-1"
@@ -945,7 +932,7 @@ export function PlayPage({
             </PlayQueueActions>
           </div>
         ) : (
-          <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+          <div className="flex min-h-0 flex-1 flex-col">
             <CustomGamesPanel
               currentPlayerId={player.id}
               maps={maps}

@@ -244,7 +244,6 @@ export function LobbyPage(): JSX.Element {
   const matchNeedsAttention = queueStatus === 'match_found' || queueStatus === 'ready_check'
   const showingPlaySelection =
     page === 'play' &&
-    playView !== 'custom' &&
     !completedMatch &&
     ['idle', 'joining', 'queued', 'leaving'].includes(queueStatus)
   const [installationReady, setInstallationReady] = useState<boolean | null>(null)

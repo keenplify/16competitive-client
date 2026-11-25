@@ -1,10 +1,21 @@
 .custom-room-board {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 12px;
   --room-seat-height: 41px;
   container-type: inline-size;
   background: #0c131c;
   border: 1px solid #ffffff25;
   color: #eff5fb;
   padding: 12px;
+}
+.room-actions {
+  flex: none;
+  align-self: flex-end;
+  margin-top: auto;
+  width: calc((100% - 12px) / 2.72);
 }
 .room-main-grid,
 .room-bottom-grid {
@@ -222,6 +233,9 @@
   .room-bottom-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .room-actions {
+    width: calc((100% - 12px) / 2);
+  }
 }
 @container (max-width: 540px) {
   :root:not([data-launcher-theme='vgui2']) .room-main-grid,
@@ -231,5 +245,8 @@
   }
   .room-ffa {
     grid-column: auto;
+  }
+  .room-actions {
+    width: 100%;
   }
 }

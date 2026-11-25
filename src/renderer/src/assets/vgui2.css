@@ -794,10 +794,8 @@
   font-weight: 400;
 }
 
-:root[data-launcher-theme='vgui2']
-  .vgui-page-window-host
-  > .vgui-window:has([data-custom-game-room]) {
-  height: auto;
+:root[data-launcher-theme='vgui2'] .vgui-window-content:has(> .play-page) {
+  overflow: hidden;
 }
 
 /* Settings owns scrolling so its section navigation and sticky sidebar share

@@ -185,7 +185,10 @@ export function CustomGamesPanel({
       await action()
       const error = useCustomGamesStore.getState().error
       toast.update(id, {
-        render: error === t('customRoom.betInsufficient') ? fundsMessage(error) : error ?? t('roomLobby.updated'),
+        render:
+          error === t('customRoom.betInsufficient')
+            ? fundsMessage(error)
+            : (error ?? t('roomLobby.updated')),
         type: error ? 'error' : 'success',
         isLoading: false,
         autoClose: 3500
@@ -300,172 +303,178 @@ export function CustomGamesPanel({
 
       {room ? (
         <div className="custom-room-board">
-          <div className="room-main-grid">
-            <aside className="room-map-card">
-              {mapPreview && (
-                <img
-                  key={mapPreview}
-                  src={mapPreview}
-                  alt=""
-                  onError={(e) => {
-                    const fallback = localMapPreviews[room.mapId]
-                    if (fallback && e.currentTarget.getAttribute('src') !== fallback)
-                      e.currentTarget.src = fallback
-                    else e.currentTarget.hidden = true
-                  }}
-                />
-              )}
-              <div className="room-map-caption">
-                <span className="text-xs font-bold uppercase tracking-widest">
-                  {t('customRoom.map')}
-                </span>
-                <h2 className="text-2xl font-bold">{map?.displayName ?? room.mapId}</h2>
-                <p className="mt-2 text-sm">
-                  {t(customModeLabel(roomMode ?? room.mode))} ·{' '}
-                  {room.mode === 'ffa'
-                    ? t('matchmaking.ffaKillTarget').replace(
-                        '{kills}',
-                        roomMode === 'winter_ffa' ? '30' : '50'
-                      )
-                    : `${room.teamOneCapacity}v${room.teamTwoCapacity}`}
-                </p>
-                <p className="mt-1 text-xs uppercase">
-                  {room.region} ·{' '}
-                  {t(
-                    (
-                      {
-                        WAITING: 'roomLobby.waiting',
-                        LIVE: 'roomLobby.live',
-                        READY_CHECK: 'roomLobby.ready',
-                        FINISHED: 'roomLobby.finished'
-                      } as const
-                    )[room.state]
-                  )}
-                </p>
-                {room.state === 'READY_CHECK' && (
-                  <p className="mt-2 text-sm text-amber-200">{t('roomLobby.readyHint')}</p>
-                )}
-              </div>
-            </aside>
-            {(room.mode === 'ffa' ? ([0] as const) : ([1, 2] as const)).map((team) => {
-              const ffa = team === 0
-              const members = ffa ? playingMembers : room.members.filter((m) => m.team === team)
-              const capacity = ffa
-                ? ffaCapacity
-                : team === 1
-                  ? room.teamOneCapacity
-                  : room.teamTwoCapacity
-              const resize = (change: -1 | 1) =>
-                runAction(() =>
-                  team === 0 ? changeFfaCapacity(change) : setTeamCapacity(team, capacity + change)
-                )
-              return (
-                <div key={team} className={ffa ? 'room-ffa' : 'min-w-0'}>
-                  <RoomRoster
-                    title={ffa ? t('profile.players') : t('roomLobby.team', { n: team })}
-                    tone={team === 2 ? 'red' : 'blue'}
-                    host={room.ownerId}
-                    members={members}
-                    capacity={capacity}
-                    maximum={ffa ? 16 : 8}
-                    busy={busy}
-                    canDecrease={ffa ? canBlockFfa : capacity > Math.max(1, members.length)}
-                    onReset={
-                      editable
-                        ? () =>
-                            void runAction(async () => {
-                              for (const side of team === 0 ? ([1, 2] as const) : [team]) {
-                                if (useCustomGamesStore.getState().currentRoom?.id !== room.id)
-                                  return
-                                if ((side === 1 ? room.teamOneCapacity : room.teamTwoCapacity) < 8)
-                                  await setTeamCapacity(side, 8)
-                                if (useCustomGamesStore.getState().error) return
-                              }
-                            })
-                        : undefined
-                    }
-                    onDecrease={editable ? () => void resize(-1) : undefined}
-                    onIncrease={editable ? () => void resize(1) : undefined}
-                    onAddBot={
-                      editable && roomMode !== 'winter_ffa'
-                        ? () => void runAction(() => addBot(team || undefined))
-                        : undefined
-                    }
-                    onJoin={
-                      room.state === 'WAITING' &&
-                      (ffa ? currentMember?.team === 0 : currentMember?.team !== team)
-                        ? () =>
-                            void runAction(() =>
-                              team === 0 ? moveSelfToFfa() : moveMember(currentPlayerId, team)
-                            )
-                        : undefined
-                    }
-                    onMenu={showMemberMenu}
-                    markers={(member) => (
-                      <MemberBetMarkers member={member} currentPlayerId={currentPlayerId} />
-                    )}
+          <div className="min-h-0 overflow-y-auto">
+            <div className="room-main-grid">
+              <aside className="room-map-card">
+                {mapPreview && (
+                  <img
+                    key={mapPreview}
+                    src={mapPreview}
+                    alt=""
+                    onError={(e) => {
+                      const fallback = localMapPreviews[room.mapId]
+                      if (fallback && e.currentTarget.getAttribute('src') !== fallback)
+                        e.currentTarget.src = fallback
+                      else e.currentTarget.hidden = true
+                    }}
                   />
+                )}
+                <div className="room-map-caption">
+                  <span className="text-xs font-bold uppercase tracking-widest">
+                    {t('customRoom.map')}
+                  </span>
+                  <h2 className="text-2xl font-bold">{map?.displayName ?? room.mapId}</h2>
+                  <p className="mt-2 text-sm">
+                    {t(customModeLabel(roomMode ?? room.mode))} ·{' '}
+                    {room.mode === 'ffa'
+                      ? t('matchmaking.ffaKillTarget').replace(
+                          '{kills}',
+                          roomMode === 'winter_ffa' ? '30' : '50'
+                        )
+                      : `${room.teamOneCapacity}v${room.teamTwoCapacity}`}
+                  </p>
+                  <p className="mt-1 text-xs uppercase">
+                    {room.region} ·{' '}
+                    {t(
+                      (
+                        {
+                          WAITING: 'roomLobby.waiting',
+                          LIVE: 'roomLobby.live',
+                          READY_CHECK: 'roomLobby.ready',
+                          FINISHED: 'roomLobby.finished'
+                        } as const
+                      )[room.state]
+                    )}
+                  </p>
+                  {room.state === 'READY_CHECK' && (
+                    <p className="mt-2 text-sm text-amber-200">{t('roomLobby.readyHint')}</p>
+                  )}
                 </div>
-              )
-            })}
-          </div>
-          <div className="room-bottom-grid">
-            <div className="room-chat-dock" ref={setChatDock} />
-            <div className="flex min-w-0 flex-col gap-3">
-              <RoomRoster
-                title={t('roomLobby.spectators')}
-                tone="spectators"
-                members={room.members.filter((m) => m.team === 0)}
-                capacity={2}
-                maximum={2}
-                host={room.ownerId}
-                busy={busy}
-                onMenu={showMemberMenu}
-                onJoin={
-                  room.state === 'WAITING' && currentMember?.team !== 0
-                    ? () => void runAction(() => moveMember(currentPlayerId, 0))
-                    : undefined
-                }
-              />
-              <div className="mt-auto flex flex-wrap items-center justify-end gap-2">
-                {editable && (
-                  <Button
-                    variant="secondary"
-                    className="size-10 p-2"
-                    aria-label={t('customRoom.settings')}
-                    title={t('customRoom.settings')}
-                    aria-haspopup="dialog"
-                    disabled={busy}
-                    onClick={openRoomSettings}
-                  >
-                    <Settings size={18} />
-                  </Button>
-                )}
-                <Button
-                  variant="secondary"
-                  className="h-10 gap-2 px-4"
-                  disabled={busy || (owner && !editable)}
-                  onClick={() => void runAction(leaveRoom)}
-                >
-                  <LogOut className="size-4 shrink-0" aria-hidden="true" />
-                  {t('roomLobby.leave')}
-                </Button>
-                {editable && (
-                  <Button
-                    className="room-start h-auto min-h-12 grow gap-2 px-5 py-3"
-                    disabled={
-                      busy ||
-                      settingsModalOpen ||
-                      (roomMode === 'winter_ffa' && playingMembers.length < 2)
-                    }
-                    onClick={() => void runAction(startRoom)}
-                  >
-                    <Play className="size-4 shrink-0 fill-current" aria-hidden="true" />
-                    {t('customRoom.start')}
-                  </Button>
-                )}
+              </aside>
+              {(room.mode === 'ffa' ? ([0] as const) : ([1, 2] as const)).map((team) => {
+                const ffa = team === 0
+                const members = ffa ? playingMembers : room.members.filter((m) => m.team === team)
+                const capacity = ffa
+                  ? ffaCapacity
+                  : team === 1
+                    ? room.teamOneCapacity
+                    : room.teamTwoCapacity
+                const resize = (change: -1 | 1) =>
+                  runAction(() =>
+                    team === 0
+                      ? changeFfaCapacity(change)
+                      : setTeamCapacity(team, capacity + change)
+                  )
+                return (
+                  <div key={team} className={ffa ? 'room-ffa' : 'min-w-0'}>
+                    <RoomRoster
+                      title={ffa ? t('profile.players') : t('roomLobby.team', { n: team })}
+                      tone={team === 2 ? 'red' : 'blue'}
+                      host={room.ownerId}
+                      members={members}
+                      capacity={capacity}
+                      maximum={ffa ? 16 : 8}
+                      busy={busy}
+                      canDecrease={ffa ? canBlockFfa : capacity > Math.max(1, members.length)}
+                      onReset={
+                        editable
+                          ? () =>
+                              void runAction(async () => {
+                                for (const side of team === 0 ? ([1, 2] as const) : [team]) {
+                                  if (useCustomGamesStore.getState().currentRoom?.id !== room.id)
+                                    return
+                                  if (
+                                    (side === 1 ? room.teamOneCapacity : room.teamTwoCapacity) < 8
+                                  )
+                                    await setTeamCapacity(side, 8)
+                                  if (useCustomGamesStore.getState().error) return
+                                }
+                              })
+                          : undefined
+                      }
+                      onDecrease={editable ? () => void resize(-1) : undefined}
+                      onIncrease={editable ? () => void resize(1) : undefined}
+                      onAddBot={
+                        editable && roomMode !== 'winter_ffa'
+                          ? () => void runAction(() => addBot(team || undefined))
+                          : undefined
+                      }
+                      onJoin={
+                        room.state === 'WAITING' &&
+                        (ffa ? currentMember?.team === 0 : currentMember?.team !== team)
+                          ? () =>
+                              void runAction(() =>
+                                team === 0 ? moveSelfToFfa() : moveMember(currentPlayerId, team)
+                              )
+                          : undefined
+                      }
+                      onMenu={showMemberMenu}
+                      markers={(member) => (
+                        <MemberBetMarkers member={member} currentPlayerId={currentPlayerId} />
+                      )}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+            <div className="room-bottom-grid">
+              <div className="room-chat-dock" ref={setChatDock} />
+              <div className="flex min-w-0 flex-col gap-3">
+                <RoomRoster
+                  title={t('roomLobby.spectators')}
+                  tone="spectators"
+                  members={room.members.filter((m) => m.team === 0)}
+                  capacity={2}
+                  maximum={2}
+                  host={room.ownerId}
+                  busy={busy}
+                  onMenu={showMemberMenu}
+                  onJoin={
+                    room.state === 'WAITING' && currentMember?.team !== 0
+                      ? () => void runAction(() => moveMember(currentPlayerId, 0))
+                      : undefined
+                  }
+                />
               </div>
             </div>
+          </div>
+          <div className="room-actions flex flex-wrap items-center justify-end gap-2">
+            {editable && (
+              <Button
+                variant="secondary"
+                className="size-10 p-2"
+                aria-label={t('customRoom.settings')}
+                title={t('customRoom.settings')}
+                aria-haspopup="dialog"
+                disabled={busy}
+                onClick={openRoomSettings}
+              >
+                <Settings size={18} />
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              className="h-10 gap-2 px-4"
+              disabled={busy || (owner && !editable)}
+              onClick={() => void runAction(leaveRoom)}
+            >
+              <LogOut className="size-4 shrink-0" aria-hidden="true" />
+              {t('roomLobby.leave')}
+            </Button>
+            {editable && (
+              <Button
+                className="room-start h-auto min-h-12 grow gap-2 px-5 py-3"
+                disabled={
+                  busy ||
+                  settingsModalOpen ||
+                  (roomMode === 'winter_ffa' && playingMembers.length < 2)
+                }
+                onClick={() => void runAction(startRoom)}
+              >
+                <Play className="size-4 shrink-0 fill-current" aria-hidden="true" />
+                {t('customRoom.start')}
+              </Button>
+            )}
           </div>
         </div>
       ) : (
