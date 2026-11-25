@@ -5119,3 +5119,30 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.1125.2 — 2026-11-25
 
 - Fixed the missing FFA leader panel and Winter snowball charge meter in NextClient.
+
+## v2026.1125.3 — 2026-11-25
+
+### Sign-in & Account
+
+- GameHub users stay in the partner sign-in flow during session recovery.
+- Username setup remains actionable when availability checks are delayed.
+
+### Custom Games
+
+- Redesigned custom room rosters, lobby themes, and host controls.
+- Added support for community custom room modes.
+- Added VIP requirement guidance and join confirmation to custom games.
+
+### Inventory & Rewards
+
+- Refined inventory controls, store presentation, and mission rewards.
+- Silent mixer cues now correctly appear as off.
+- MVP selection is isolated for clearer results.
+
+### Web Client
+
+- Reopening the web client no longer starts unnecessary asset downloads.
+
+### PCash Bets
+
+- PCash bet fees are now deducted from the stake instead of the 2× return.
