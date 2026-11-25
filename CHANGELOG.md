@@ -5227,3 +5227,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Branding
 
 - Updated partner branding and community identity across the client.
+
+## v2026.1126.1 — 2026-11-25
+
+### Custom Rooms
+
+- Custom rooms are now scoped to the selected game.
+- Partner Counter-Strike 1.6 client exports are recognized.
+
+### Native Helper
+
+- Outdated helper installations now recognize released native versions.
+- Download options are offered when an outdated helper is detected.
