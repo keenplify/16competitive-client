@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
 import { useAuthStore } from '../auth/auth.store'
 import { useTranslation } from '../i18n/i18n'
+import { hostedCommunityBrand } from '../partner-branding/partner-identity'
 import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 import { topUpMethods } from '../../../../shared/payment-preference'
 import { usePaymentsStore } from './payments.store'
@@ -43,6 +44,7 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
   const priority = usePartnerBrandingStore(
     (state) => state.branding?.priorityPaymentMethod ?? state.joinedBranding?.priorityPaymentMethod
   )
+  const policy = usePartnerBrandingStore(state => state.branding ?? state.joinedBranding)
   const ownerId = useAuthStore((state) => state.session?.player.id ?? null)
   const {
     open,
@@ -99,6 +101,8 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
     usd !== null && (paymongo ? priceMethod : !manual || manualMethod)
       ? topUpPrice(usd, priceMethod, language)
       : '—'
+  const methods = topUpMethods(preferredProvider, priority, snapshot, policy?.communityBrandOnly ? policy.partnerId : hostedCommunityBrand()?.id, policy?.partnerId)
+  const selectedAvailable = methods.some(method => method.id === methodId && !method.disabled)
   const onClose = close
   return (
     <>
@@ -155,7 +159,7 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
                 disabled={busy}
                 onChange={(e) => selectMethod(e.target.value)}
               >
-                {topUpMethods(preferredProvider, priority, snapshot).map((method) => (
+                {methods.map((method) => (
                   <option key={method.id} value={method.id} disabled={method.disabled}>
                     {method.label}
                   </option>
@@ -165,6 +169,7 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
             <form
               onSubmit={(event) => {
                 event.preventDefault()
+                if (!selectedAvailable) return
                 if (manual) void manualAction('create')
                 else void create()
               }}
@@ -244,7 +249,7 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
                 className="h-12 w-full text-base"
                 disabled={
                   busy ||
-                  usd === null ||
+                  !selectedAvailable || usd === null ||
                   (manual
                     ? !manualMethod
                     : paymongo
@@ -276,9 +281,9 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
                   <p className="text-rose-300">
                     {t(manual ? 'payments.manualError' : 'payments.error')}
                   </p>
-                ) : snapshot &&
+                ) : snapshot && (!methods.some(method => !method.disabled) ||
                   !(paymongo ? snapshot.paymongo?.enabled : snapshot.enabled) &&
-                  !manual ? (
+                  !manual) ? (
                   <p className="text-neutral-300">{t('payments.unavailable')}</p>
                 ) : busy ? (
                   <p className="text-neutral-300">{t('payments.loading')}</p>

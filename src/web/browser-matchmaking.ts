@@ -83,7 +83,7 @@ const alertReadyCheck = (
   readyNotification?.close()
   readyNotificationKey = key
   const copy = matchNotificationCopy(currentLanguage())
-  document.title = `${copy.title} — 1.6 Competitive`
+  document.title = `${copy.title} — ${document.querySelector<HTMLMetaElement>('meta[name="16c-brand-only"]')?.content ?? '1.6 Competitive'}`
   if (!document.hidden || !('Notification' in window) || Notification.permission !== 'granted')
     return
   try {

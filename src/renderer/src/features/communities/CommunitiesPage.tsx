@@ -44,7 +44,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
   const loadMoreTrigger = useRef<HTMLDivElement>(null)
   const branding = usePartnerBrandingStore((store) => store.branding)
   const restricted =
-    branding?.allowOtherCommunities === false &&
+    branding?.communityBrandOnly === true || branding?.allowOtherCommunities === false &&
     branding.partnerId === state.currentCommunityId &&
     !state.canBypassLeaveRestriction
   const community = useDisplayedCommunity()

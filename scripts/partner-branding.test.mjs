@@ -33,6 +33,7 @@ const branding = {
   musicVolumePercent: 50,
   logoUrl: null,
   showPapamoGamesLogo: true,
+  disableEmailCollection:false,
   hideNativeHelperSetup: false,
   customScoreboardEnabled: true,
   communityName: null,

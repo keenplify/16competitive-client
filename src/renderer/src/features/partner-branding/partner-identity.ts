@@ -1,5 +1,12 @@
 import { usePartnerBrandingStore } from './partner-branding.store'
 
+export const hostedCommunityBrand = (): {id:string; name:string} | null => {
+  if (typeof document === 'undefined') return null
+  const name = document.querySelector<HTMLMetaElement>('meta[name="16c-brand-only"]')?.content
+  const id = document.querySelector<HTMLMetaElement>('meta[name="16c-partner-id"]')?.content
+  return name && id ? {id,name} : null
+}
+
 export const hasPartnerPageContext = (): boolean => {
   if (typeof document === 'undefined') return false
   const id =
@@ -21,6 +28,7 @@ export function useAppName(): string | null {
     (state) =>
       state.branding?.communityName ??
       state.branding?.appName ??
+      hostedCommunityBrand()?.name ??
       (hasPartnerPageContext() || !state.resolved ? '' : null)
   )
 }

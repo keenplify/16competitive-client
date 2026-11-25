@@ -185,3 +185,16 @@ test('Philippine account, locale and timezone hints prefer PayMongo without chan
   assert.equal(preferredPaymentProvider(null, 'UTC', ['fil']), 'paymongo')
   assert.equal(preferredPaymentProvider('US', 'America/New_York', ['en-US']), 'paymento')
 })
+
+test('community checkout defaults to its own GCash number even with a US locale', async () => {
+  const {topUpMethods} = await import('../src/shared/payment-preference.ts')
+  const community = '583704ab-6fc5-4b58-8fc2-d91cf1d7c051'
+  const data = {enabled:true, paymongo:{enabled:true}, manual:{methods:[
+    {id:'shared',name:'GCash',currency:'PHP'},
+    {id:'other',name:'GCash',currency:'PHP',communityId:'other-community'},
+    {id:'own',name:'GCash - partner',currency:'PHP',communityId:community}
+  ]}}
+  assert.deepEqual(topUpMethods('paymento','community_gcash',data,community).map(m=>m.id), ['own'])
+  assert.deepEqual(topUpMethods('paymento','community_gcash',{...data,manual:{methods:[]}},community),[])
+  assert.equal(topUpMethods('paymento',null,data)[0].id,'paymento')
+})

@@ -31,7 +31,7 @@ function showDuplicate(): void {
   const root = document.getElementById('root')!
   root.setAttribute('role', 'status')
   root.textContent =
-    duplicateMessage[language as keyof typeof duplicateMessage] ?? duplicateMessage.en
+    (duplicateMessage[language as keyof typeof duplicateMessage] ?? duplicateMessage.en).replace('1.6 Competitive', () => document.querySelector<HTMLMetaElement>('meta[name="16c-brand-only"]')?.content ?? '1.6 Competitive')
 }
 
 if (navigator.locks) {

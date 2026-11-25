@@ -16,7 +16,7 @@ export const resolveCommunityLinks = (
   branding: ReturnType<typeof usePartnerBrandingStore.getState>['branding'],
   language: SupportedLanguageCode = 'en'
 ): { label: string; href: string }[] =>
-  branding?.customSocialLinksEnabled
+  branding?.customSocialLinksEnabled || branding?.communityBrandOnly
     ? resolveConfiguredCommunityLinks(branding, language)
     : [...communityLinks]
 

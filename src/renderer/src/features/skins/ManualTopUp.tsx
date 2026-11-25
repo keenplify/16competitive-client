@@ -19,6 +19,7 @@ export function ManualTransferPopup({ order }: { order: ManualOrder }): JSX.Elem
   return (
     <ModalDialog
       open
+      vguiTitlebar={false}
       onClose={closeDetails}
       labelledBy="manual-payment-summary"
       className="max-w-3xl"
@@ -82,6 +83,9 @@ export function ManualTransferPopup({ order }: { order: ManualOrder }): JSX.Elem
             </figure>
           )}
           <div className="min-w-0 space-y-4">
+            {order.method.paymentUrl && order.status === 'AWAITING_TRANSFER' && (
+              <a className="underline" href={order.method.paymentUrl} target="_blank" rel="noopener noreferrer">GCash · {amount}</a>
+            )}
             {order.method.instructions && (
               <p className="text-sm whitespace-pre-wrap break-words text-neutral-300">
                 {order.method.instructions}

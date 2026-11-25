@@ -527,6 +527,7 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
         isMapId(message.mapId) &&
         isTeams(message.teams) &&
         (message.winner === 1 || message.winner === 2) &&
+        (message.afkForfeits === undefined || (Array.isArray(message.afkForfeits) && message.afkForfeits.length <= 128 && message.afkForfeits.every(id => typeof id === 'string'))) &&
         (message.mode !== 'ffa' || typeof message.winnerPlayerId === 'string') &&
         (message.winnerPlayerId === undefined || typeof message.winnerPlayerId === 'string') &&
         typeof message.teamAScore === 'number' &&

@@ -41,6 +41,7 @@ export interface PaymentSnapshot {
   orders: PaymentOrder[]
   manual?: ManualSnapshot
   paymongo?: {
+    communityId?: string | null
     enabled: boolean
     currency: 'PHP'
     minorPerUsd: number | null
@@ -186,6 +187,8 @@ export const parsePaymentSnapshot = (value: unknown): PaymentSnapshot => {
 }
 
 export interface ManualMethod {
+  paymentUrl?: string | null
+  communityId?: string | null
   id: string
   name: string
   currency: string
@@ -232,7 +235,13 @@ const instructions = (value: unknown): Omit<ManualMethod, 'id'> => {
       !/^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(m.qrImage))
   )
     throw new Error('INVALID_PAYMENT_RESPONSE')
+  if (m.paymentUrl != null) {
+    const url = new URL(text(m.paymentUrl, 2048))
+    if (url.protocol !== 'https:' || url.username || url.password || url.port || !/(^|\.)gcash\.com$/i.test(url.hostname))
+      throw new Error('INVALID_PAYMENT_RESPONSE')
+  }
   return {
+    ...(typeof m.paymentUrl === 'string' ? {paymentUrl:m.paymentUrl} : {}),
     name: text(m.name, 60),
     currency: String(m.currency),
     minorPerUsd: integer(m.minorPerUsd, 100000),
@@ -282,7 +291,7 @@ export const parseManualSnapshot = (value: unknown): ManualSnapshot => {
   return {
     methods: data.methods.map((value) => {
       const m = object(value)
-      return { id: validatePaymentId(m.id), ...instructions(m) }
+      return { id: validatePaymentId(m.id), ...(m.communityId == null ? {} : {communityId:validatePaymentId(m.communityId)}), ...instructions(m) }
     }),
     orders: data.orders.map(parseManualOrder)
   }
@@ -315,6 +324,7 @@ const parsePaymongoSnapshot = (value: unknown): NonNullable<PaymentSnapshot['pay
   return {
     enabled: data.enabled,
     currency: 'PHP',
+    ...(data.communityId == null ? {} : {communityId:validatePaymentId(data.communityId)}),
     minorPerUsd: data.minorPerUsd as number | null,
     orders
   }

@@ -1,3 +1,4 @@
+import { hostedCommunityBrand } from '../partner-branding/partner-identity'
 import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 import { preferredPaymentProvider, topUpMethods } from '../../../../shared/payment-preference'
 import { toast } from 'react-toastify'
@@ -177,10 +178,12 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
       if (current())
         set((state) => {
           const brand = usePartnerBrandingStore.getState()
+          const policy = brand.branding ?? brand.joinedBranding
           const options = topUpMethods(
             state.preferredProvider,
             brand.branding?.priorityPaymentMethod ?? brand.joinedBranding?.priorityPaymentMethod,
-            snapshot
+            snapshot,
+            policy?.communityBrandOnly ? policy.partnerId : hostedCommunityBrand()?.id, policy?.partnerId
           )
           if (
             state.methodResolved &&
@@ -189,7 +192,7 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
             return { snapshot }
           return {
             snapshot,
-            methodId: options.find((option) => !option.disabled)?.id ?? 'paymento',
+            methodId: options.find((option) => !option.disabled)?.id ?? (policy?.communityBrandOnly ? '' : 'paymento'),
             methodResolved: false
           }
         })

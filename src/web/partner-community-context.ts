@@ -31,10 +31,10 @@ export async function loadBrowserCommunityDirectory(
   )
   const preferredCommunity =
     preferred.communities.find((community) => community.id === partnerId) ?? null
-  // A partner's discovery preference applies to its members, not every visitor
-  // who opened a partner link. Staff can always inspect the full directory.
+  // A branded PWA stays on its host community for all visitors. Ordinary
+  // discovery restrictions still follow membership and staff permissions.
   if (
-    !branding.allowOtherCommunities &&
+    branding.communityBrandOnly || !branding.allowOtherCommunities &&
     preferred.currentCommunityId === partnerId &&
     !preferred.canBypassLeaveRestriction
   )

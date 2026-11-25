@@ -126,6 +126,7 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
   const [sceneStatus, setSceneStatus] = useState<PartySceneStatus>('loading')
   const showFallback = useNavigationStore((state) => state.page === 'lobby')
   const failScene = useCallback(() => setSceneStatus('error'), [])
+  const communityOnly = usePartnerBrandingStore(state => state.branding?.communityBrandOnly === true) || Boolean(document.querySelector('meta[name="16c-brand-only"]'))
   const railEnabled = useNewsVisibilityStore((state) => state.visibility?.railEnabled)
   const lobbyPlayerModel = useLobbyLoadoutStore((state) => state.playerModel)
   const lobbyWeaponKey = useLobbyLoadoutStore((state) => state.weaponKey)
@@ -139,7 +140,7 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
       className="fixed inset-0 z-0 flex min-h-screen flex-col overflow-y-auto pt-16 sm:pt-20"
     >
       <div className="relative flex min-h-0 flex-1">
-        {railEnabled && <LobbyNewsPanel className="absolute top-0 left-0 z-10 h-full" />}
+        {!communityOnly && railEnabled && <LobbyNewsPanel className="absolute top-0 left-0 z-10 h-full" />}
         <LobbyModelErrorBoundary onFailure={failScene}>
           <PartyModelScene
             onStatus={setSceneStatus}
@@ -187,6 +188,7 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
 })
 
 export function LobbyPage(): JSX.Element {
+  const communityOnly = usePartnerBrandingStore(state => state.branding?.communityBrandOnly === true) || Boolean(document.querySelector('meta[name="16c-brand-only"]'))
   const popupEnabled = useNewsVisibilityStore((state) => state.visibility?.popupEnabled)
   const refreshNewsVisibility = useNewsVisibilityStore((state) => state.refresh)
   useEffect(() => {
@@ -207,15 +209,16 @@ export function LobbyPage(): JSX.Element {
   const startDailyQuests = useDailyQuestStore((state) => state.start)
   const stopDailyQuests = useDailyQuestStore((state) => state.stop)
   const page = useNavigationStore((state) => state.page)
+  const scopedName = usePartnerBrandingStore(state => state.branding?.communityBrandOnly ? state.branding.communityName : null)
   const communityName = useCommunitiesStore((state) => state.currentCommunity?.name)
   const canBypassLeaveRestriction = useCommunitiesStore((state) => state.canBypassLeaveRestriction)
   const leaveRestricted = usePartnerBrandingStore(
     (state) => state.branding?.allowOtherCommunities === false
   )
   const communityTitle =
-    leaveRestricted && !canBypassLeaveRestriction && communityName
+    scopedName ?? (leaveRestricted && !canBypassLeaveRestriction && communityName
       ? communityName
-      : t('directory.title')
+      : t('directory.title'))
   const playView = useCustomGamesStore((state) => state.playView)
   const navigate = useNavigationStore((state) => state.navigate)
   useEffect(() => {
@@ -491,7 +494,7 @@ export function LobbyPage(): JSX.Element {
     <StoreContent />
   ) : page === 'communities' ? (
     <CommunitiesPage friendsCollapsed={friendsCollapsed} />
-  ) : page === 'news' ? (
+  ) : page === 'news' && !communityOnly ? (
     <NewsPage />
   ) : page === 'leaderboard' ? (
     <LeaderboardPage />
@@ -619,7 +622,7 @@ export function LobbyPage(): JSX.Element {
         !completedMatch &&
         queueStatus === 'idle' &&
         (page === 'lobby' || page === 'play') &&
-        popupEnabled && <NewsAnnouncement />}
+        !communityOnly && popupEnabled && <NewsAnnouncement />}
     </main>
   )
 }

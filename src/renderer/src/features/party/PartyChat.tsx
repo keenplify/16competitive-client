@@ -1,3 +1,5 @@
+import { hostedCommunityBrand } from '../partner-branding/partner-identity'
+import { usePartnerBrandingStore } from "../partner-branding/partner-branding.store"
 import { createPortal } from 'react-dom'
 import { ChatAnnouncements } from '../chat/ChatAnnouncements'
 import { ChatCommandPopover } from '../chat/ChatCommandPopover'
@@ -53,7 +55,11 @@ export function PartyChat(): JSX.Element {
   const partyDraft = usePartyStore((state) => state.chatDraft)
   const partySending = usePartyStore((state) => state.chatSending)
   const partyError = usePartyStore((state) => state.chatError)
-  const chatTab = usePartyStore((state) => state.chatTab)
+  const brand = usePartnerBrandingStore(state => state.branding ?? state.joinedBranding)
+  const pendingHostBrand = !brand && hostedCommunityBrand()
+  const hideLanguage = brand?.hideLanguageChat || Boolean(pendingHostBrand)
+  const hideGlobal = brand?.hideGlobalChat || Boolean(pendingHostBrand)
+  const selectedTab = usePartyStore((state) => state.chatTab)
   const globalEntries = usePartyStore((state) => state.globalChatEntries)
   const communityAnnouncement = usePartyStore((state) => state.communityAnnouncement)
   const maybeShowCommunityAnnouncement = usePartyStore(
@@ -89,7 +95,7 @@ export function PartyChat(): JSX.Element {
   const setCommunityDraft = useCommunityChatStore((state) => state.setDraft)
   const sendCommunity = useCommunityChatStore((state) => state.send)
   const communityChatHidden = useCommunityChatStore((state) => state.chatHidden)
-  const hasCommunity = Boolean(communityId && communityName?.trim() && !communityChatHidden)
+  const hasCommunity = Boolean(communityId && communityName?.trim() && !communityChatHidden && !pendingHostBrand && (!brand?.communityBrandOnly || communityId === brand.partnerId))
   const communityLabel = communityName || communityText(language, 'community')
   const communityTab = hasCommunity ? [{ id: 'community' as const, label: communityLabel }] : []
   const communityFirst = hasCommunity && communityId !== PLATFORM_COMMUNITY_ID
@@ -100,6 +106,14 @@ export function PartyChat(): JSX.Element {
   }, [communityFirst, preferCommunityChat])
 
   const room = useCustomGamesStore((state) => state.currentRoom)
+  const fallbackTab = hasCommunity ? 'community'
+    : !hideLanguage ? 'language'
+    : !hideGlobal ? 'global'
+    : party ? 'party'
+    : room ? 'room' : null
+  const chatTab = (selectedTab === 'language' && hideLanguage) ||
+    (selectedTab === 'global' && hideGlobal) || (selectedTab === 'community' && !hasCommunity) ||
+    (selectedTab === 'party' && !party) || (selectedTab === 'room' && !room) ? fallbackTab : selectedTab
   const roomId = room?.id
   const roomHostApiUrl = room?.hostApiUrl
   const roomChatId = useCustomGamesStore((state) => state.chatRoomId)
@@ -179,10 +193,6 @@ export function PartyChat(): JSX.Element {
     return () => window.clearInterval(timer)
   }, [playerId, chatTab, chatOpen, loadCommunity])
   useEffect(() => {
-    if ((!party && chatTab === 'party') || (!hasCommunity && chatTab === 'community'))
-      setChatTab('language')
-  }, [party, hasCommunity, chatTab, setChatTab])
-  useEffect(() => {
     startFriendChat()
     return stopFriendChat
   }, [startFriendChat, stopFriendChat])
@@ -192,8 +202,8 @@ export function PartyChat(): JSX.Element {
   }, [language, setGlobalChatLanguage])
 
   useEffect(() => {
-    if (page === 'lobby') maybeShowCommunityAnnouncement()
-  }, [page, maybeShowCommunityAnnouncement])
+    if (page === 'lobby' && !brand?.communityBrandOnly && !brand?.hideGlobalChat) maybeShowCommunityAnnouncement()
+  }, [page, maybeShowCommunityAnnouncement, brand])
 
   useEffect(() => {
     const previousRoomId = previousRoomIdRef.current
@@ -450,7 +460,7 @@ export function PartyChat(): JSX.Element {
               ? languageError
               : globalError
   const canSend =
-    !activeFriendId && chatTab === 'community'
+    !activeFriendId && !chatTab ? false : !activeFriendId && chatTab === 'community'
       ? Boolean(communityId)
       : activeFriendId
         ? Boolean(friendConversation)
@@ -551,7 +561,7 @@ export function PartyChat(): JSX.Element {
               ? `${globalLanguageLabel} chat message`
               : 'Global chat message'
 
-  if (!chatVisible) return <></>
+  if (!chatVisible || (!chatTab && !activeFriendId)) return <></>
 
   const content = (
     <>
@@ -621,7 +631,8 @@ export function PartyChat(): JSX.Element {
                   ...(party
                     ? [{ id: 'party' as const, label: communityText(language, 'party') }]
                     : []),
-                  { id: 'language' as const, label: globalLanguageLabel },
+                  ...(!hideGlobal ? [{ id: 'global' as const, label: communityText(language, 'global') }] : []),
+                  ...(!hideLanguage ? [{ id: 'language' as const, label: globalLanguageLabel }] : []),
                   ...(!communityFirst ? communityTab : [])
                 ].map((tab) => (
                   <button
@@ -1034,7 +1045,7 @@ export function PartyChat(): JSX.Element {
   )
   return (
     <>
-      <ChatAnnouncements />
+      {!pendingHostBrand && !brand?.communityBrandOnly && <ChatAnnouncements />}
       {chatDock ? createPortal(content, chatDock) : content}
     </>
   )

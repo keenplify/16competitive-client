@@ -61,15 +61,16 @@ export function LobbyNavigation({
   const { t } = useTranslation()
   const scrolled = useHeaderScrolled(activePage)
   const canReview = useAdminDemosStore((state) => state.allowed)
+  const scopedName = usePartnerBrandingStore(state => state.branding?.communityBrandOnly ? state.branding.communityName : null)
   const communityName = useCommunitiesStore((state) => state.currentCommunity?.name)
   const canBypassLeaveRestriction = useCommunitiesStore((state) => state.canBypassLeaveRestriction)
   const leaveRestricted = usePartnerBrandingStore(
     (state) => state.branding?.allowOtherCommunities === false
   )
   const communityLabel =
-    leaveRestricted && !canBypassLeaveRestriction && communityName
+    scopedName ?? (leaveRestricted && !canBypassLeaveRestriction && communityName
       ? communityName
-      : t('directory.title')
+      : t('directory.title'))
   const nodes = useMatchmakingStore((state) => state.nodes)
   const selectedNodeId = useMatchmakingStore((state) => state.selectedNodeId)
   const playWindowNode = displayedPlayWindowNode(nodes, selectedNodeId)

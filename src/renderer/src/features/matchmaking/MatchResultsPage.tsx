@@ -32,9 +32,10 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
     ...(currentPlayerId ? [currentPlayerId] : []),
     ...(party?.members.map((member) => member.id) ?? [])
   ])
-  const questSnapshot = useDailyQuestStore((state) => state.snapshot)
+  const forfeited = Boolean(currentPlayerId && match.afkForfeits?.includes(currentPlayerId))
+  const questSnapshot = useDailyQuestStore((state) => forfeited ? null : state.snapshot)
   const rewards = useDailyQuestStore((state) =>
-    state.lastMatchId === match.matchId ? state.lastMatchRewards : null
+    !forfeited && state.lastMatchId === match.matchId ? state.lastMatchRewards : null
   )
   const friends = useFriendsStore((state) => state.friends)
   const requestFriend = useFriendsStore((state) => state.request)
@@ -45,12 +46,11 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
     : match.teams.teamB.some((player) => player.id === currentPlayerId)
       ? 2
       : null
-  const didWin =
-    match.mode === 'ffa'
+  const didWin = !forfeited && (match.mode === 'ffa'
       ? currentPlayerId === match.winnerPlayerId
-      : currentPlayerTeam !== null && currentPlayerTeam === match.winner
+      : currentPlayerTeam !== null && currentPlayerTeam === match.winner)
   const resultLabel =
-    match.mode === 'ffa' ? (didWin ? 'FFA winner' : 'FFA complete') : didWin ? 'Victory' : 'Defeat'
+    forfeited ? 'Defeat' : match.mode === 'ffa' ? (didWin ? 'FFA winner' : 'FFA complete') : didWin ? 'Victory' : 'Defeat'
   const resultClassName = didWin ? 'text-emerald-300' : 'text-neutral-200'
   const resultsBackgroundClass = didWin
     ? 'bg-[radial-gradient(circle_at_50%_24%,rgba(16,185,129,0.30)_0%,rgba(6,95,70,0.18)_28%,rgba(10,10,10,0.70)_60%,rgba(10,10,10,0.97)_100%)]'

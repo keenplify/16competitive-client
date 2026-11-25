@@ -426,6 +426,7 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
       mapId: string
       teams: { teamA: QueuedPlayer[]; teamB: QueuedPlayer[] }
       winner: 1 | 2
+      afkForfeits?: string[]
       winnerPlayerId?: string
       teamAScore: number
       teamBScore: number

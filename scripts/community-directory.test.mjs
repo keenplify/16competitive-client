@@ -677,7 +677,7 @@ test('partner chat defaults once when available and preserves deliberate tab cho
   store.getState().reset()
   store.getState().setChatTab('global')
   store.getState().preferCommunityChat()
-  assert.equal(store.getState().chatTab, 'language')
+  assert.equal(store.getState().chatTab, 'global')
 
   for (const chatTab of ['party', 'room']) {
     store.getState().reset()

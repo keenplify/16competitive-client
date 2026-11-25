@@ -50,7 +50,7 @@ createRoot(document.getElementById('root')).render(<CommunityEditPage friendsCol
           }
         ]
       })
-      const css = (await readdir('dist-web/assets')).find((name) => /^index-.*\.css$/.test(name))
+      const css = (await readdir('dist-web/assets')).find((name) => /^(?:index|start-app)-.*\.css$/.test(name))
       assert.ok(css, 'run npm run build:web first')
       await writeFile(
         join(dir, 'index.html'),
@@ -69,7 +69,7 @@ await run('community.setState({saving:true})');await pause();assert.equal(await 
 await run('community.setState({saving:false,saveError:true})');await pause();assert.deepEqual(await geometry(),initial);assert.equal(await run('document.querySelector("input[type=checkbox]").checked'),true);
 await run('community.setState({saveError:false})');await pause();assert.deepEqual(await geometry(),initial);
 assert.equal(await run('getComputedStyle(document.querySelector("button[type=submit]")).borderRadius'),'0px');
-fs.writeFileSync('/tmp/16c-community-chat-toggle.png',(await w.webContents.capturePage()).toPNG());w.destroy();app.exit(0);
+fs.writeFileSync(${JSON.stringify(join(dir, 'community-chat-toggle.png'))},(await w.webContents.capturePage()).toPNG());w.destroy();app.exit(0);
 }catch(e){console.error(e);w.destroy();app.exit(1)}});
 `
       )

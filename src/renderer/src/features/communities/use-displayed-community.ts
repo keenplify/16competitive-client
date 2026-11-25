@@ -10,7 +10,7 @@ export function useDisplayedCommunity(): CommunityCard | null {
   const currentCommunityId = useCommunitiesStore((state) => state.currentCommunityId)
   const canBypassLeaveRestriction = useCommunitiesStore((state) => state.canBypassLeaveRestriction)
   const branding = usePartnerBrandingStore((state) => state.branding)
-  return branding?.allowOtherCommunities === false &&
+  return branding?.communityBrandOnly === true || branding?.allowOtherCommunities === false &&
     branding.partnerId === currentCommunityId &&
     !canBypassLeaveRestriction
     ? ([preferred, current, viewed].find((item) => item?.id === branding.partnerId) ?? null)

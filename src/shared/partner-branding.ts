@@ -16,6 +16,10 @@ export interface PartnerAppIcon {
   smallSha256: string
 }
 export interface PartnerBranding {
+  hideLanguageChat?: boolean
+  hideGlobalChat?: boolean
+  useCommunityPrefix?: boolean
+  communityBrandOnly?: boolean
   hideCommunityChat?: boolean
   partnerId: string
   customScoreboardEnabled?: boolean
@@ -197,6 +201,9 @@ export const parsePartnerBranding = (
     throw new Error('Invalid desktop download setting.')
   if (value.hideCommunityChat !== undefined && typeof value.hideCommunityChat !== 'boolean')
     throw new Error('Invalid community chat visibility.')
+  for (const key of ["hideLanguageChat","hideGlobalChat","useCommunityPrefix","communityBrandOnly"] as const) {
+    if (value[key] !== undefined && typeof value[key] !== 'boolean') throw new Error('Invalid community presentation setting.')
+  }
   const appName = value.appName
   if (
     appName != null &&
@@ -242,6 +249,10 @@ export const parsePartnerBranding = (
   return {
     branding: {
       ...parseCommunityBranding(value),
+      ...(value.hideLanguageChat !== undefined ? { hideLanguageChat: value.hideLanguageChat === true } : {}),
+      ...(value.hideGlobalChat !== undefined ? { hideGlobalChat: value.hideGlobalChat === true } : {}),
+      ...(value.useCommunityPrefix !== undefined ? { useCommunityPrefix: value.useCommunityPrefix === true } : {}),
+      ...(value.communityBrandOnly !== undefined ? { communityBrandOnly: value.communityBrandOnly === true } : {}),
       ...(value.launcherTheme !== undefined
         ? { launcherTheme: value.launcherTheme as 'latest' | 'vgui2' }
         : {}),
