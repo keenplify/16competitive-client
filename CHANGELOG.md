@@ -5187,4 +5187,4 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 ### Changes
 
-- No player-facing changes were provided.
+- Chrome on supported first-person weapon skins now responds to turning and to changes in map lighting as you move between bright and shaded areas.
