@@ -7,8 +7,8 @@ import { useTranslation } from '../i18n/i18n'
 import { useNativeHelperSettingsStore } from '../settings/native-helper-settings.store'
 import { useWebHelperPromptStore } from './web-helper-prompt.store'
 
-const isWindows = navigator.platform.toLowerCase().includes('win')
-const helperRelease = 'https://github.com/keenplify/16competitive-client/releases/latest/download/'
+import { WebHelperDownloads } from './WebHelperDownloads'
+
 const helperSource = 'https://github.com/keenplify/16competitive-client/tree/main/web-helper'
 
 export function WebHelperSetup({
@@ -144,12 +144,7 @@ export function WebHelperSetup({
       <div className="grid min-h-12 grid-cols-2 gap-3 border-y border-white/10 py-2 text-xs text-neutral-300">
         <span>
           {t('webHelper.installedVersion', {
-            version:
-              status === 'rust'
-                ? (installedVersion ?? '…')
-                : status === 'outdated-rust'
-                  ? t('webHelper.olderVersion')
-                  : '—'
+            version: status === 'rust' ? (installedVersion ?? '…') : '—'
           })}
         </span>
         <span className="text-right">
@@ -166,31 +161,14 @@ export function WebHelperSetup({
         </span>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        {status !== 'rust' &&
-          (isWindows
-            ? [{ file: 'competitive16-web-helper.exe', arch: null }]
-            : [
-                { file: 'competitive16-web-helper-linux', arch: 'x64' as const },
-                { file: 'competitive16-web-helper-linux-arm64', arch: 'arm64' as const }
-              ]
-          ).map(({ file, arch }) => (
-            <ButtonLink
-              key={file}
-              variant="primary"
-              className="h-auto min-h-11 py-2 text-center"
-              href={`${helperRelease}${file}`}
-              download
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                if (arch) void prepareSetup(arch)
-                else useWebHelperPromptStore.getState().awaitInstall()
-              }}
-            >
-              {t('webHelper.download')}
-              {arch ? ` · Linux ${arch === 'x64' ? 'x64' : 'ARM64'}` : ''}
-            </ButtonLink>
-          ))}
+        {status !== 'rust' && (
+          <WebHelperDownloads
+            onDownload={(arch) => {
+              if (arch) void prepareSetup(arch)
+              else useWebHelperPromptStore.getState().awaitInstall()
+            }}
+          />
+        )}
       </div>
       <div className="flex items-center justify-between gap-3">
         <ButtonLink

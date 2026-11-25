@@ -1,3 +1,5 @@
+import { createElement } from 'react'
+import { OutdatedHelperNotice } from './OutdatedHelperNotice'
 import { toast } from 'react-toastify'
 import { translate, useLanguageStore, type TranslationKey } from '../i18n/i18n'
 import { useWebHelperPromptStore } from './web-helper-prompt.store'
@@ -22,16 +24,14 @@ export async function verifyInstalledNativeHelper(): Promise<boolean> {
   }
   const ready = status === 'rust'
   toast.update(feedback, {
-    render: t(
-      ready
-        ? 'webHelper.rustReady'
-        : status === 'outdated-rust'
-          ? 'webHelper.rustOutdated'
-          : 'webHelper.unavailable'
-    ),
+    render:
+      status === 'outdated-rust'
+        ? createElement(OutdatedHelperNotice)
+        : t(ready ? 'webHelper.rustReady' : 'webHelper.unavailable'),
     type: ready ? 'success' : 'error',
     isLoading: false,
-    autoClose: 5000
+    closeButton: true,
+    autoClose: status === 'outdated-rust' ? false : 5000
   })
   return ready
 }

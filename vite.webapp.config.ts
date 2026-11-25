@@ -67,8 +67,16 @@ for (const source of [
   'src/shared/windows-goldclient-exports.json',
   'helper-release.json',
   'src/shared/discord-application.json'
-])
-  webHelperFingerprint.update(readFileSync(resolve(source)))
+]) {
+  const bytes = readFileSync(resolve(source))
+  // Release helpers embed the repository's LF text. A Windows PWA build may
+  // have CRLF working files. Preserve exact bytes for the PNG and sprite.
+  webHelperFingerprint.update(
+    source.endsWith('.png') || source.endsWith('.spr')
+      ? bytes
+      : bytes.toString('utf8').replace(/\r\n/g, '\n')
+  )
+}
 
 const webAssets = {
   name: '16competitive-web-assets',
