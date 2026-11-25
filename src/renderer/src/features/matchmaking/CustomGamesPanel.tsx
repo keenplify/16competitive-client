@@ -3,6 +3,7 @@ import { gameForMode } from '../../../../shared/game-version'
 import { useEffect, useRef, useState, type JSX, type MouseEvent } from 'react'
 import {
   Bot,
+  HelpCircle,
   LoaderCircle,
   LockKeyhole,
   Plus,
@@ -39,6 +40,7 @@ import { useCustomGamesStore } from './custom-games.store'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useFriendsStore } from '../friends/friends.store'
 import { usePaymentsStore } from '../skins/payments.store'
+import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 
 interface CustomGamesPanelProps {
   currentPlayerId: string
@@ -139,6 +141,9 @@ export function CustomGamesPanel({
   const openRoomSettings = useCustomGamesStore((state) => state.openRoomSettings)
   const savingSettings = useCustomGamesStore((state) => state.savingSettings)
   const joinRoom = useCustomGamesStore((state) => state.joinRoom)
+  const vip = usePartnerBrandingStore((state) => state.vip)
+  const communityName = usePartnerBrandingStore((state) => state.branding?.communityName)
+  const vipLocked = vip?.customGamesVipOnly === true && !vip.active
   const leaveRoom = useCustomGamesStore((state) => state.leaveRoom)
   const startRoom = useCustomGamesStore((state) => state.startRoom)
   const addBot = useCustomGamesStore((state) => state.addBot)
@@ -582,6 +587,19 @@ export function CustomGamesPanel({
                   <Plus className="size-4" aria-hidden="true" />
                   <span className="relative z-10">{t('customGames.create')}</span>
                 </FindMatchButton>
+                {vipLocked && (
+                  <span
+                    className="grid size-8 shrink-0 cursor-help place-items-center rounded-none border border-white/15 bg-black/40 text-neutral-300"
+                    title={t('customRoom.vipCreateTooltip', {
+                      community: communityName ?? 'community'
+                    })}
+                    aria-label={t('customRoom.vipCreateTooltip', {
+                      community: communityName ?? 'community'
+                    })}
+                  >
+                    <HelpCircle className="size-4" aria-hidden="true" />
+                  </span>
+                )}
                 <Button
                   className="size-8 p-0"
                   variant="secondary"
@@ -696,11 +714,23 @@ export function CustomGamesPanel({
                           : 'Waiting'}
                     </span>
                     <Button
-                      className="h-8 px-3 text-xs"
+                      className={twMerge(
+                        'h-8 px-3 text-xs',
+                        vipLocked ? 'cursor-not-allowed opacity-50' : ''
+                      )}
                       variant="secondary"
-                      disabled={unavailable}
+                      disabled={!vipLocked && unavailable}
+                      aria-disabled={vipLocked || unavailable}
                       title={locked ? t('customRoom.joinUnavailable') : undefined}
                       onClick={() => {
+                        if (vipLocked) {
+                          toast.error(
+                            t('customRoom.vipJoinToast', {
+                              community: communityName ?? 'community'
+                            })
+                          )
+                          return
+                        }
                         if (locked) return
                         if (candidate.hasPassword) setPasswordRoom(candidate)
                         else void joinRoom(candidate.id, undefined, candidate.hostApiUrl)

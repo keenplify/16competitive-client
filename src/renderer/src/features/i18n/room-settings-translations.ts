@@ -52,8 +52,10 @@ const english = {
   'customRoom.betShortTooltip':
     'Needs {{amount}} to play in this room. The game cannot start while a player is short.',
   'customRoom.vipGateTitle': 'Extra VIP features',
-  'customRoom.vipGateHint': 'Only active VIP members can create custom games in this community.',
+  'customRoom.vipGateHint': 'Only active VIP members can create and join custom games in this community.',
   'customRoom.vipExpired': 'Your membership expired on {{date}}.',
+  'customRoom.vipCreateTooltip': 'You need to be a {{community}} VIP to create custom rooms.',
+  'customRoom.vipJoinToast': 'You need to be a {{community}} VIP to join custom rooms.',
   'customRoom.betShortTooltipSelf':
     'You need {{amount}} to play in this room. Balance: {{balance}}.'
 } as const
@@ -115,8 +117,10 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.betShortTooltip':
       'Нужно {{amount}} для игры в этой комнате. Игра не начнётся, пока у игрока не хватает средств.',
     'customRoom.vipGateTitle': 'Дополнительные VIP-функции',
-    'customRoom.vipGateHint': 'Создавать свои игры могут только активные VIP-участники.',
+    'customRoom.vipGateHint': 'Создавать свои игры и входить в них могут только активные VIP-участники.',
     'customRoom.vipExpired': 'Ваша подписка истекла {{date}}.',
+    'customRoom.vipCreateTooltip': 'Чтобы создавать свои игры, нужно быть VIP-участником {{community}}.',
+    'customRoom.vipJoinToast': 'Чтобы входить в свои игры, нужно быть VIP-участником {{community}}.',
     'customRoom.betShortTooltipSelf':
       'Вам нужно {{amount}} для игры в этой комнате. Баланс: {{balance}}.'
   },
@@ -174,8 +178,11 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
       "Kailangan ng {{amount}} para makalaro sa room na ito. Hindi magsisimula ang laro hangga't may kulang.",
     'customRoom.vipGateTitle': 'Extra VIP features',
     'customRoom.vipGateHint':
-      'Mga aktibong VIP member lang ang makakagawa ng custom games sa community na ito.',
+      'Mga aktibong VIP member lang ang makakagawa at makakasali sa custom games sa community na ito.',
     'customRoom.vipExpired': 'Nag-expire ang membership mo noong {{date}}.',
+    'customRoom.vipCreateTooltip':
+      'Kailangan mong maging VIP ng {{community}} para makagawa ng custom games.',
+    'customRoom.vipJoinToast': 'Kailangan mong maging VIP ng {{community}} para makasali sa custom games.',
     'customRoom.betShortTooltipSelf':
       'Kailangan mo ng {{amount}} para makalaro sa room na ito. Balanse: {{balance}}.'
   },
@@ -231,8 +238,10 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.betShortTooltip':
       'ต้องมี {{amount}} จึงจะเล่นในห้องนี้ เกมจะเริ่มไม่ได้ถ้ายังมีคนขาดเงิน',
     'customRoom.vipGateTitle': 'ฟีเจอร์ VIP พิเศษ',
-    'customRoom.vipGateHint': 'เฉพาะสมาชิก VIP ที่ยังใช้งานอยู่เท่านั้นที่สร้างเกมกำหนดเองได้',
+    'customRoom.vipGateHint': 'เฉพาะสมาชิก VIP ที่ยังใช้งานอยู่เท่านั้นที่สร้างและเข้าร่วมเกมกำหนดเองได้',
     'customRoom.vipExpired': 'สมาชิกของคุณหมดอายุเมื่อ {{date}}',
+    'customRoom.vipCreateTooltip': 'คุณต้องเป็น VIP ของ {{community}} จึงจะสร้างเกมกำหนดเองได้',
+    'customRoom.vipJoinToast': 'คุณต้องเป็น VIP ของ {{community}} จึงจะเข้าร่วมเกมกำหนดเองได้',
     'customRoom.betShortTooltipSelf':
       'คุณต้องมี {{amount}} จึงจะเล่นในห้องนี้ ยอดคงเหลือ: {{balance}}'
   },
@@ -290,8 +299,10 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
       'Butuh {{amount}} untuk bermain di room ini. Game tidak bisa dimulai selama ada pemain yang kekurangan.',
     'customRoom.vipGateTitle': 'Fitur VIP ekstra',
     'customRoom.vipGateHint':
-      'Hanya anggota VIP aktif yang dapat membuat game kustom di komunitas ini.',
+      'Hanya anggota VIP aktif yang dapat membuat dan bergabung ke game kustom di komunitas ini.',
     'customRoom.vipExpired': 'Keanggotaan Anda berakhir pada {{date}}.',
+    'customRoom.vipCreateTooltip': 'Anda harus menjadi VIP {{community}} untuk membuat game kustom.',
+    'customRoom.vipJoinToast': 'Anda harus menjadi VIP {{community}} untuk bergabung ke game kustom.',
     'customRoom.betShortTooltipSelf':
       'Anda butuh {{amount}} untuk bermain di room ini. Saldo: {{balance}}.'
   },
@@ -348,8 +359,10 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.betShortTooltip':
       'इस रूम में खेलने के लिए {{amount}} चाहिए। जब तक कोई खिलाड़ी कम है, खेल शुरू नहीं हो सकता।',
     'customRoom.vipGateTitle': 'अतिरिक्त VIP फीचर',
-    'customRoom.vipGateHint': 'इस कम्युनिटी में सिर्फ सक्रिय VIP सदस्य ही कस्टम गेम बना सकते हैं।',
+    'customRoom.vipGateHint': 'इस कम्युनिटी में सिर्फ सक्रिय VIP सदस्य ही कस्टम गेम बना और जॉइन कर सकते हैं।',
     'customRoom.vipExpired': 'आपकी सदस्यता {{date}} को समाप्त हुई।',
+    'customRoom.vipCreateTooltip': 'कस्टम गेम बनाने के लिए आपको {{community}} का VIP होना चाहिए।',
+    'customRoom.vipJoinToast': 'कस्टम गेम जॉइन करने के लिए आपको {{community}} का VIP होना चाहिए।',
     'customRoom.betShortTooltipSelf':
       'इस रूम में खेलने के लिए आपको {{amount}} चाहिए। शेष: {{balance}}।'
   },
@@ -406,8 +419,10 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.betShortTooltip':
       'É preciso {{amount}} para jogar nesta sala. A partida não começa enquanto houver alguém sem saldo.',
     'customRoom.vipGateTitle': 'Recursos VIP extras',
-    'customRoom.vipGateHint': 'Somente VIPs ativos podem criar jogos próprios nesta comunidade.',
+    'customRoom.vipGateHint': 'Somente VIPs ativos podem criar e entrar em jogos próprios nesta comunidade.',
     'customRoom.vipExpired': 'Sua assinatura expirou em {{date}}.',
+    'customRoom.vipCreateTooltip': 'Você precisa ser VIP de {{community}} para criar jogos próprios.',
+    'customRoom.vipJoinToast': 'Você precisa ser VIP de {{community}} para entrar em jogos próprios.',
     'customRoom.betShortTooltipSelf':
       'Você precisa de {{amount}} para jogar nesta sala. Saldo: {{balance}}.'
   },
@@ -464,8 +479,10 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
       'この部屋でプレイするには{{amount}}必要です。足りないプレイヤーがいる間は開始できません。',
     'customRoom.vipGateTitle': '追加VIP機能',
     'customRoom.vipGateHint':
-      'このコミュニティではアクティブなVIPメンバーだけがカスタムゲームを作成できます。',
+      'このコミュニティではアクティブなVIPメンバーだけがカスタムゲームの作成と参加ができます。',
     'customRoom.vipExpired': 'メンバーシップは{{date}}に期限切れです。',
+    'customRoom.vipCreateTooltip': 'カスタムゲームを作成するには{{community}}のVIPである必要があります。',
+    'customRoom.vipJoinToast': 'カスタムゲームに参加するには{{community}}のVIPである必要があります。',
     'customRoom.betShortTooltipSelf':
       'この部屋でプレイするには{{amount}}必要です。残高: {{balance}}。'
   }
