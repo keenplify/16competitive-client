@@ -30,7 +30,10 @@ import { AlphaReleaseWatermark } from './components/AlphaReleaseWatermark'
 import { WebHelperController } from './features/matchmaking/WebHelperController'
 import { QueueWarmupNotice } from './features/matchmaking/QueueWarmupNotice'
 
-function App({ preserveMusic = false }: { preserveMusic?: boolean }): React.JSX.Element {
+function App({ preserveMusic = false, partnerSignInOnly = false }: {
+  preserveMusic?: boolean
+  partnerSignInOnly?: boolean
+}): React.JSX.Element {
   useEffect(() => {
     void window.api.updater
       .rendererReady()
@@ -68,7 +71,7 @@ function App({ preserveMusic = false }: { preserveMusic?: boolean }): React.JSX.
           transition={Slide}
           className="launcher-toast-container"
         />
-        <AuthPage />
+        <AuthPage partnerSignInOnly={partnerSignInOnly} />
         <ProfileOverlay />
         <MatchDetailsOverlay />
         <IcafeBranchPanel />

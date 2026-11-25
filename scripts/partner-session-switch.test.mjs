@@ -241,6 +241,23 @@ function sessionHarness(cache = new Map(), incoming = false) {
   )
   return { api: exports, cache, handlers, reloads: () => reloads }
 }
+test('public failures and stale asset requests cannot clear the current partner session', async (t) => {
+  const { api } = sessionHarness()
+  api.setWebSessionToken('first')
+  let respond
+  t.mock.method(globalThis, 'fetch', () => new Promise((resolve) => { respond = resolve }))
+  const publicRequest = api.requestJson('/public')
+  await Promise.resolve()
+  respond(new Response('{}', { status: 401 }))
+  await assert.rejects(publicRequest)
+  assert.equal(api.getWebSessionToken(), 'first')
+  const oldRequest = api.requestArrayBuffer('/asset', { authenticated: true })
+  await Promise.resolve()
+  api.setWebSessionToken('next')
+  respond(new Response(null, { status: 401 }))
+  await assert.rejects(oldRequest)
+  assert.equal(api.getWebSessionToken(), 'next')
+})
 test('partner return context survives reload but clears on normal login and logout', () => {
   const { api, cache } = sessionHarness()
   const partner = {

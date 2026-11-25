@@ -44,7 +44,10 @@ let discardSavedPartnerSession = hasIncomingPartnerLogin()
 const returnToPartnerLogin = (): void => {
   if (hasIncomingPartnerLogin()) return
   const returnUrl = partnerReturnUrl()
-  if (!returnUrl) return
+  if (returnUrl) navigateToPartnerLogin(returnUrl)
+}
+
+export const navigateToPartnerLogin = (returnUrl: string): void => {
   usePartnerReturnStore.setState({
     ready: true,
     redirecting: true,

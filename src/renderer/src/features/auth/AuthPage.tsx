@@ -39,7 +39,7 @@ const socialProviderLabel = (provider: 'google' | 'facebook' | 'discord' | 'stea
         ? 'Facebook'
         : 'Discord'
 
-export function AuthPage(): JSX.Element {
+export function AuthPage({ partnerSignInOnly = false }: { partnerSignInOnly?: boolean }): JSX.Element {
   const { t } = useTranslation()
   const desktopUrl = useDesktopAppUrl()
   const icafeBranch = useIcafeBranchStore((state) => state.status.info)
@@ -219,11 +219,11 @@ export function AuthPage(): JSX.Element {
     )
   }
 
-  if (status === 'restoring') {
+  if (status === 'restoring' || partnerSignInOnly) {
     return (
       <main
         className="fixed inset-0 flex h-screen w-screen items-center justify-center bg-neutral-950"
-        aria-label="Restoring your session"
+        aria-label={t(partnerSignInOnly ? 'partnerLogin.loading' : 'auth.restoring')}
         role="status"
       >
         <LoaderCircle className="size-8 animate-spin text-sky-400" aria-hidden="true" />

@@ -54,6 +54,7 @@ const readableError = (error: unknown): string => {
   return remoteError?.[1] ?? error.message
 }
 
+let restoring = false
 export const useAuthStore = create<AuthState>((set, get) => ({
   mode: 'login',
   username: '',
@@ -68,17 +69,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   registeredThisSession: false,
 
   restore: async () => {
-    if (get().status !== 'idle' && get().status !== 'restoring') return
+    if (restoring || (get().status !== 'idle' && get().status !== 'restoring')) return
+    restoring = true
     set({ status: 'restoring', error: null })
     try {
       const session = await window.api.auth.restore()
+      if (get().status !== 'restoring') return
       set(
         session
           ? { session, status: 'authenticated', registeredThisSession: false }
           : { session: null, status: 'idle', registeredThisSession: false }
       )
     } catch {
-      set({ session: null, status: 'idle', registeredThisSession: false })
+      if (get().status === 'restoring')
+        set({ session: null, status: 'idle', registeredThisSession: false })
+    } finally {
+      restoring = false
     }
   },
 

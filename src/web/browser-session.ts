@@ -154,6 +154,7 @@ export const requestJson = async <T>(
   if (!response.ok) {
     if (
       response.status === 401 &&
+      options.authenticated &&
       options.clearOnUnauthorized !== false &&
       sessionToken === requestToken
     )
@@ -188,6 +189,7 @@ export const requestArrayBuffer = async (
 ): Promise<ArrayBuffer> => {
   await webHandoffReady
   const base = options.baseUrl ?? currentApiOrigin()
+  const requestToken = sessionToken
   const headers = new Headers()
   if (options.authenticated) {
     if (!sessionToken) throw new Error('Authentication required')
@@ -197,7 +199,8 @@ export const requestArrayBuffer = async (
     headers,
     signal: AbortSignal.timeout(options.timeoutMs ?? 15_000)
   })
-  if (response.status === 401) clearWebSessionToken()
+  if (response.status === 401 && options.authenticated && sessionToken === requestToken)
+    clearWebSessionToken()
   if (!response.ok) throw new Error(`Request failed (${response.status})`)
   return response.arrayBuffer()
 }
