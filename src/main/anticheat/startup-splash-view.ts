@@ -13,7 +13,7 @@ export function pmGuardSplashHtml(
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'" />
-<title>PMGUARD</title>
+<title>PGUARD</title>
 <style>
   @font-face { font-family: Rajdhani; src: url('${assets.font ?? ''}') format('woff2'); font-style: normal; font-weight: 600; font-display: block; }
   @font-face { font-family: Rajdhani; src: url('${assets.boldFont ?? ''}') format('woff2'); font-style: normal; font-weight: 700; font-display: block; }
@@ -48,15 +48,15 @@ export function pmGuardSplashHtml(
 </style>
 </head>
 <body>
-<main class="splash" aria-label="PMGUARD">
+<main class="splash" aria-label="PGUARD">
   <img class="art" src="${assets.artwork}" alt="" />
   <div class="shade" aria-hidden="true"></div>
   <header class="game">
     <img id="community-logo" class="game-logo stock" src="${assets.logo}" alt="1.6 Competitive" />
   </header>
-  <section class="brand" aria-label="PMGUARD">
+  <section class="brand" aria-label="PGUARD">
     <img class="emblem" src="${assets.emblem}" alt="" />
-    <h2 class="brand-name">PMGUARD</h2>
+    <h2 class="brand-name">PGUARD</h2>
   </section>
   <div class="status" role="status">
     <div class="status-copy"><span id="status-message">${copy.starting}</span><span id="status-detail" class="status-label">${copy.anticheat}</span></div>

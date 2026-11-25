@@ -25,7 +25,7 @@ export async function showAntiCheatStartupSplash(
   )
 ): Promise<BrowserWindow> {
   const partnerLogo = loadStartupPartnerLogo().catch(() => {
-    console.warn('[PMGUARD] community logo unavailable; using the default logo')
+    console.warn('[PGUARD] community logo unavailable; using the default logo')
     return null
   })
   const [artwork, emblem, font, boldFont, logo] = await Promise.all([
@@ -55,7 +55,7 @@ export async function showAntiCheatStartupSplash(
     frame: false,
     roundedCorners: false,
     backgroundColor: '#0b1623',
-    title: 'PMGUARD',
+    title: 'PGUARD',
     resizable: false,
     movable: false,
     minimizable: false,
@@ -92,7 +92,7 @@ export async function showAntiCheatStartupSplash(
     throw error
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true }).catch((error: unknown) => {
-      console.warn('[PMGUARD] splash temporary file cleanup failed', error)
+      console.warn('[PGUARD] splash temporary file cleanup failed', error)
     })
   }
   if (!splash.isDestroyed()) splash.showInactive()
@@ -111,7 +111,7 @@ export async function showAntiCheatStartupSplash(
     })()`)
     })
     .catch(() => {
-      if (!splash.isDestroyed()) console.warn('[PMGUARD] community logo could not be displayed')
+      if (!splash.isDestroyed()) console.warn('[PGUARD] community logo could not be displayed')
     })
   return splash
 }
