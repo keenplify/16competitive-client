@@ -1,5 +1,5 @@
 //! Prepare WON's server-selected mod folder without launching Electron.
-//! Copy game assets only; user configuration is never inspected or copied.
+//! Seed the active mod with the partner autoexec once. Preserve player overrides.
 use std::{
     fs,
     io::{self, Read},
@@ -112,8 +112,26 @@ impl Budget {
         Ok(())
     }
 }
+fn seed_autoexec(root: &Path) -> Result<(), String> {
+    let source_dir = root.join("cstrike");
+    let target_dir = root.join("cstrk13");
+    if !crate::installation_version::matches(root, "cstrike", "cs13") { return Ok(()); }
+    for dir in [&source_dir, &target_dir] {
+        let meta = fs::symlink_metadata(dir).map_err(|e| e.to_string())?;
+        if !meta.is_dir() || meta.file_type().is_symlink() { return Err("Unsafe CS 1.3 mod directory".into()); }
+    }
+    let source = source_dir.join("autoexec.cfg");
+    match fs::symlink_metadata(&source) {
+        Ok(m) if m.is_file() && !m.file_type().is_symlink() && m.len() <= 256 * 1024 =>
+            Budget::default().copy_missing(&source, &target_dir.join("autoexec.cfg")),
+        Ok(_) => Ok(()),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e.to_string()),
+    }
+}
 pub fn prepare(root: &Path, game: &str) -> Result<String, String> {
     if game == "cstrk13" {
+        seed_autoexec(root)?;
         return Ok(game.into());
     }
     if game != "cstrike" {
@@ -170,6 +188,7 @@ pub fn prepare(root: &Path, game: &str) -> Result<String, String> {
     if !crate::installation_version::matches(root, "cstrk13", "cs13") {
         return Err("Invalid prepared CS 1.3 installation".into());
     }
+    seed_autoexec(root)?;
     Ok("cstrk13".into())
 }
 #[cfg(test)]

@@ -25,12 +25,11 @@ const assetExtensions = new Set([
 
 /** WON switches to the server's game directory during signon. Populate that
  * directory before starting, using local assets and preserving existing files.
- * Player configuration and launcher/helper session files are never copied. */
+ * Seed only the partner autoexec when the active mod has none. */
 export async function prepareCs13MatchInstallation(
   installation: LegacyInstallation,
   platform: NodeJS.Platform
 ): Promise<LegacyInstallation> {
-  if (installation.modDirectory === 'cstrk13') return installation
   const destination = join(installation.folderPath, 'cstrk13')
   const ensureDirectory = async (path: string): Promise<void> => {
     await mkdir(path).catch((error: NodeJS.ErrnoException) => {
@@ -93,6 +92,25 @@ export async function prepareCs13MatchInstallation(
       })
     }
   }
+  const originalMod = join(installation.folderPath, 'cstrike')
+  const originalInfo = await lstat(originalMod).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== 'ENOENT') throw error
+    return null
+  })
+  if (originalInfo?.isDirectory() && !originalInfo.isSymbolicLink()) {
+    const original = installation.modDirectory === 'cstrike'
+      ? installation : await cs13Adapter.validateInstallation(originalMod, platform).catch(() => null)
+    if (original?.modDirectory === 'cstrike') {
+      const source = join(originalMod, 'autoexec.cfg')
+      const info = await lstat(source).catch((error: NodeJS.ErrnoException) => {
+        if (error.code !== 'ENOENT') throw error
+        return null
+      })
+      if (info?.isFile() && !info.isSymbolicLink() && info.size <= 256 * 1024)
+        await copyMissing(source, join(destination, 'autoexec.cfg'))
+    }
+  }
+  if (installation.modDirectory === 'cstrk13') return installation
   const walk = async (source: string, target: string, depth: number): Promise<void> => {
     if (depth > 12) throw new Error('Legacy 1.3 asset directory is too deep')
     for (const entry of await readdir(source, { withFileTypes: true })) {
