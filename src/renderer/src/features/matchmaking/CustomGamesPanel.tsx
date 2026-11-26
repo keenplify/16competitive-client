@@ -13,7 +13,6 @@ import {
   UserX
 } from 'lucide-react'
 import { toast } from 'react-toastify'
-import { twMerge } from 'tailwind-merge'
 import {
   CUSTOM_GAME_MODE_LABELS,
   type CustomGameMember,
@@ -21,6 +20,7 @@ import {
 } from '../../../../shared/custom-games'
 import type { MatchmakingMap } from '../../../../shared/matchmaking'
 import type { MatchmakingNode } from '../../../../shared/matchmaking'
+import { AnchoredTooltip } from '../../components/ui/AnchoredTooltip'
 import { Button } from '../../components/ui/Button'
 import { FindMatchButton } from './FindMatchButton'
 import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
@@ -117,6 +117,47 @@ function MemberBetMarkers({
               : t('customRoom.betShortTooltip', { amount })}
           </span>
         </WarningMarker>
+      )}
+    </span>
+  )
+}
+
+function LockedJoinButton({ room }: { room: CustomGameRoom }): JSX.Element {
+  const { t } = useTranslation()
+  const anchor = useRef<HTMLSpanElement>(null)
+  const [visible, setVisible] = useState(false)
+  const id = `room-lock-${room.id}`
+  const reason = room.joinRestriction
+    ? t(`customRoom.lock.${room.joinRestriction}`, {
+        community: room.communityName || t('customRoom.lock.host')
+      })
+    : t('customRoom.joinUnavailable')
+  return (
+    <span
+      ref={anchor}
+      className="flex"
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+    >
+      <Button
+        variant="secondary"
+        className="h-8 w-full cursor-not-allowed gap-1.5 px-3 text-xs text-neutral-400"
+        aria-disabled="true"
+        aria-label={`${t('roomLobby.join')}. ${reason}`}
+        onFocus={() => setVisible(true)}
+        onBlur={() => setVisible(false)}
+        onClick={() => setVisible(true)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setVisible(false)
+        }}
+      >
+        <LockKeyhole className="size-3.5" aria-hidden="true" />
+        {t('roomLobby.join')}
+      </Button>
+      {visible && (
+        <AnchoredTooltip id={id} anchorRef={anchor}>
+          {reason}
+        </AnchoredTooltip>
       )}
     </span>
   )
@@ -550,7 +591,7 @@ export function CustomGamesPanel({
                   candidate.members.length >=
                   candidate.teamOneCapacity + candidate.teamTwoCapacity + 2
                 const locked = candidate.joinRestricted === true
-                const unavailable = candidate.state === 'READY_CHECK' || full || locked
+                const unavailable = candidate.state === 'READY_CHECK' || full
                 const mapName =
                   maps.find((map) => map.id === candidate.mapId)?.displayName ?? candidate.mapId
                 const serverNode = nodes.find((node) => node.id === candidate.hostNodeId)
@@ -566,12 +607,9 @@ export function CustomGamesPanel({
                     </span>
                     <div className="min-w-0">
                       <p className="flex items-center gap-2 truncate text-sm font-semibold text-white">
-                        {(candidate.hasPassword || locked) && (
+                        {candidate.hasPassword && !locked && (
                           <LockKeyhole
-                            className={twMerge(
-                              'size-3.5 shrink-0',
-                              locked ? 'text-neutral-400' : 'text-amber-300'
-                            )}
+                            className="size-3.5 shrink-0 text-amber-300"
                             aria-hidden="true"
                           />
                         )}
@@ -619,37 +657,25 @@ export function CustomGamesPanel({
                           ? 'Ready check'
                           : 'Waiting'}
                     </span>
-                    <Button
-                      className={twMerge(
-                        'h-8 px-3 text-xs',
-                        vipLocked ? 'cursor-not-allowed opacity-50' : ''
-                      )}
-                      variant="secondary"
-                      disabled={!vipLocked && unavailable}
-                      aria-disabled={vipLocked || unavailable}
-                      title={locked ? t('customRoom.joinUnavailable') : undefined}
-                      onClick={() => {
-                        if (vipLocked) {
-                          toast.error(
-                            t('customRoom.vipJoinToast', {
-                              community: communityName ?? 'community'
-                            })
-                          )
-                          return
-                        }
-                        if (locked) return
-                        if (candidate.hasPassword) setPasswordRoom(candidate)
-                        else void joinRoom(candidate.id, undefined, candidate.hostApiUrl)
-                      }}
-                    >
-                      {locked
-                        ? t('customRoom.joinUnavailable')
-                        : full
+                    {locked ? (
+                      <LockedJoinButton room={candidate} />
+                    ) : (
+                      <Button
+                        className="h-8 px-3 text-xs"
+                        variant="secondary"
+                        disabled={unavailable}
+                        onClick={() => {
+                          if (candidate.hasPassword) setPasswordRoom(candidate)
+                          else void joinRoom(candidate.id, undefined, candidate.hostApiUrl)
+                        }}
+                      >
+                        {full
                           ? 'Full'
                           : candidate.state === 'LIVE'
                             ? 'Join game'
-                            : 'Join'}
-                    </Button>
+                            : t('roomLobby.join')}
+                      </Button>
+                    )}
                   </div>
                 )
               })}

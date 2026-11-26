@@ -88,8 +88,10 @@ export interface CustomGameRoom {
   hasPassword: boolean
   /** Host-set per-team bet stake in local minor units, or null. */
   betTeamStakeLocalMinor: number | null
-  /** Server verdict: the viewer cannot join this room. Opaque; never names the reason. */
+  /** Server verdict: the viewer cannot join this room. */
   joinRestricted?: boolean
+  joinRestriction?: 'community' | 'vip' | 'communityVip'
+  communityName?: string | null
   matchId: string | null
   createdAt: string
   hostNodeId: string

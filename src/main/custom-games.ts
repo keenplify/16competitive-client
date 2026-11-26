@@ -69,6 +69,11 @@ const isRoom = (value: unknown): value is CustomGameRoom =>
   Number(value.teamTwoCapacity) <= 8 &&
   typeof value.hasPassword === 'boolean' &&
   (value.joinRestricted === undefined || typeof value.joinRestricted === 'boolean') &&
+  (value.joinRestriction === undefined ||
+    ['community', 'vip', 'communityVip'].includes(String(value.joinRestriction))) &&
+  (value.communityName === undefined ||
+    value.communityName === null ||
+    typeof value.communityName === 'string') &&
   (value.betTeamStakeLocalMinor === undefined ||
     value.betTeamStakeLocalMinor === null ||
     (Number.isSafeInteger(value.betTeamStakeLocalMinor) &&
