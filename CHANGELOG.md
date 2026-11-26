@@ -5265,3 +5265,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - GoldSrc launch settings now stay synchronized between onboarding and Settings.
 - Added support for configuring GoldSrc launch settings in the launcher.
+
+## v2026.1127.2 — 2026-11-26
+
+### Counter-Strike 1.3
+
+- Account GoldSrc settings are now applied when launching Counter-Strike 1.3.
