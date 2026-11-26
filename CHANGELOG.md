@@ -5254,3 +5254,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Launcher protection
 
 - Renamed the launcher guard branding to PGUARD.
+
+## v2026.1127.1 — 2026-11-26
+
+### Account Settings
+
+- Local account settings requests now use the current web origin.
+
+### GoldSrc Settings
+
+- GoldSrc launch settings now stay synchronized between onboarding and Settings.
+- Added support for configuring GoldSrc launch settings in the launcher.
