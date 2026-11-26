@@ -301,7 +301,7 @@ async function browserGoldsrcCvars(cvars?: Record<string, number>): Promise<Reco
   const nodes = await browserMatchmakingApi.getNodes()
   const { selectedNodeId } = await browserMatchmakingApi.getPreferences()
   const healthy = nodes.filter(node => node.available && node.latencyMs != null &&
-    allowedHelperApiOrigin(node.publicApiUrl, import.meta.env.DEV))
+    (node.publicApiUrl === currentApiOrigin() || allowedHelperApiOrigin(node.publicApiUrl)))
   healthy.sort((a, b) => Number(b.id === selectedNodeId) - Number(a.id === selectedNodeId) ||
     a.latencyMs! - b.latencyMs!)
   if (getWebSessionToken() !== token) throw new Error('ACCOUNT_CHANGED')
