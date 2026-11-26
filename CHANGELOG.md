@@ -5271,3 +5271,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Counter-Strike 1.3
 
 - Account GoldSrc settings are now applied when launching Counter-Strike 1.3.
+
+## v2026.1127.3 — 2026-11-26
+
+### Community Rooms
+
+- The Join button now shows whether a community room is accessible.
