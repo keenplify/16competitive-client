@@ -23,6 +23,7 @@ import { TextField } from '../../components/ui/TextField'
 import { useAuthStore } from '../auth/auth.store'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useGameSettingsStore } from './game-settings.store'
+import { GoldsrcSettings } from './GoldsrcSettings'
 import { useOnboardingStore } from './onboarding.store'
 import { useReferralStore } from './referral.store'
 
@@ -411,6 +412,7 @@ export function OnboardingPage(): JSX.Element {
                   selected={mode === 'custom'}
                   onClick={() => setMode('custom')}
                 />
+                {games !== 'cs13' && <GoldsrcSettings />}
               </div>
             )}
 

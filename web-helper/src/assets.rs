@@ -408,6 +408,9 @@ pub fn status() -> Progress {
     })
 }
 pub(crate) fn api(origin: &str, token: &str) -> Result<ureq::Agent, String> {
+    api_with_timeout(origin, token, Duration::from_secs(90))
+}
+pub(crate) fn api_with_timeout(origin: &str, token: &str, timeout: Duration) -> Result<ureq::Agent, String> {
     if competitive16_web_helper::allowed_api_origin(origin, cfg!(debug_assertions)).as_deref()
         != Some(origin)
         || token.len() > 8192
@@ -418,7 +421,7 @@ pub(crate) fn api(origin: &str, token: &str) -> Result<ureq::Agent, String> {
     }
     Ok(ureq::AgentBuilder::new()
         .redirects(0)
-        .timeout(Duration::from_secs(90))
+        .timeout(timeout)
         .build())
 }
 pub(crate) fn request(agent: &ureq::Agent, url: &str, token: &str, max: u64) -> Result<Vec<u8>, String> {

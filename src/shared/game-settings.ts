@@ -3,6 +3,8 @@ import type { CrosshairProfile } from './crosshair'
 import type { GameDisplayPreferences, GameResolution } from './game-display'
 
 export const GAME_SETTINGS_CHANNELS = {
+  getCvars: 'game-settings:get-cvars',
+  saveCvars: 'game-settings:save-cvars',
   get: 'game-settings:get',
   chooseFolder: 'game-settings:choose-folder',
   installNextClient: 'game-settings:install-nextclient',
@@ -73,6 +75,8 @@ export interface SkinAssetSyncProgress {
 
 export interface GameSettingsApi {
   setDisplay(preferences: GameDisplayPreferences): Promise<GameSettings>
+  getCvars(): Promise<Record<string, number>>
+  saveCvars(cvars: Record<string, number>): Promise<Record<string, number>>
   get(): Promise<GameSettings>
   chooseFolder(): Promise<string | null>
   installNextClient(): Promise<void>

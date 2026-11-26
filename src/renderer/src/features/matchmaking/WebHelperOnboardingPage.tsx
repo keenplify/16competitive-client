@@ -2,6 +2,7 @@ import type { JSX } from 'react'
 import { Button } from '../../components/ui/Button'
 import { SetupCard } from '../../components/ui/SetupCard'
 import { useTranslation } from '../i18n/i18n'
+import { GoldsrcSettings } from '../settings/GoldsrcSettings'
 import { NativeHelperSettingsPanel } from '../settings/NativeHelperSettingsPanel'
 import { useNativeHelperSettingsStore } from '../settings/native-helper-settings.store'
 import { useWebHelperPromptStore } from './web-helper-prompt.store'
@@ -50,6 +51,7 @@ export function WebHelperOnboardingPage(): JSX.Element {
             foldersOnly
             className="mt-0 border-0 bg-transparent p-0 sm:p-0"
           />
+          <GoldsrcSettings />
           <Button
             className="mt-5 w-full bg-sky-400 hover:bg-sky-300"
             disabled={!['idle', 'error'].includes(folderStatus)}

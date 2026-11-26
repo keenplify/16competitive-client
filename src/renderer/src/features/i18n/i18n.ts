@@ -36,6 +36,7 @@ import { fastSwitchTranslations } from './fast-switch-translations'
 import { discordNotificationTranslations } from './discord-notification-translations'
 import { preferHumansTranslations } from './prefer-humans-translations'
 import { friendlyFireTranslations } from './friendly-fire-translations'
+import { goldsrcTranslations } from './goldsrc-translations'
 import { anticheatNoticeTranslations } from './anticheat-notice-translations'
 import { readyCheckTranslations } from './ready-check-translations'
 import { steamTranslations } from './steam-translations'
@@ -88,6 +89,7 @@ const english = {
   ...launchProgressTranslations.en,
   ...friendlyFireTranslations.en,
   ...anticheatNoticeTranslations.en,
+  ...goldsrcTranslations.en,
   ...preferHumansTranslations.en,
   ...lightweightHudTranslations.en,
   ...lobbySceneTranslations.en,
@@ -282,6 +284,7 @@ const russian: Record<TranslationKey, string> = {
   ...launchProgressTranslations.ru,
   ...friendlyFireTranslations.ru,
   ...anticheatNoticeTranslations.ru,
+  ...goldsrcTranslations.ru,
   ...preferHumansTranslations.ru,
   ...lightweightHudTranslations.ru,
   ...lobbySceneTranslations.ru,
@@ -476,6 +479,7 @@ const taglish: Record<TranslationKey, string> = {
   ...launchProgressTranslations.tl,
   ...friendlyFireTranslations.tl,
   ...anticheatNoticeTranslations.tl,
+  ...goldsrcTranslations.tl,
   ...preferHumansTranslations.tl,
   ...lightweightHudTranslations.tl,
   ...lobbySceneTranslations.tl,
@@ -672,6 +676,7 @@ const thai: Record<TranslationKey, string> = {
   ...launchProgressTranslations.th,
   ...friendlyFireTranslations.th,
   ...anticheatNoticeTranslations.th,
+  ...goldsrcTranslations.th,
   ...preferHumansTranslations.th,
   ...lightweightHudTranslations.th,
   ...lobbySceneTranslations.th,
@@ -864,6 +869,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...launchProgressTranslations.id,
   ...friendlyFireTranslations.id,
   ...anticheatNoticeTranslations.id,
+  ...goldsrcTranslations.id,
   ...preferHumansTranslations.id,
   ...lightweightHudTranslations.id,
   ...lobbySceneTranslations.id,
@@ -1062,6 +1068,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...launchProgressTranslations.pt,
   ...friendlyFireTranslations.pt,
   ...anticheatNoticeTranslations.pt,
+  ...goldsrcTranslations.pt,
   ...preferHumansTranslations.pt,
   ...lightweightHudTranslations.pt,
   ...lobbySceneTranslations.pt,
@@ -1261,6 +1268,7 @@ const japanese: Record<TranslationKey, string> = {
   ...launchProgressTranslations.ja,
   ...friendlyFireTranslations.ja,
   ...anticheatNoticeTranslations.ja,
+  ...goldsrcTranslations.ja,
   ...preferHumansTranslations.ja,
   ...lightweightHudTranslations.ja,
   ...lobbySceneTranslations.ja,
@@ -1458,6 +1466,7 @@ const hindi: Record<TranslationKey, string> = {
   ...launchProgressTranslations.hi,
   ...friendlyFireTranslations.hi,
   ...anticheatNoticeTranslations.hi,
+  ...goldsrcTranslations.hi,
   ...preferHumansTranslations.hi,
   ...lightweightHudTranslations.hi,
   ...lobbySceneTranslations.hi,

@@ -39,6 +39,7 @@ import { useUpdaterStore } from '../updates/updater.store'
 import { AssetDownloadSettings } from './AssetDownloadSettings'
 import { ReferralSettings } from './ReferralSettings'
 import { ChangelogModal } from './ChangelogModal'
+import { GoldsrcSettings } from './GoldsrcSettings'
 import { CrosshairSettings } from './CrosshairSettings'
 import { LanguageSettings } from '../i18n/LanguageSettings'
 import { ChatTranslationSettings } from './ChatTranslationSettings'
@@ -582,6 +583,7 @@ export function SettingsPage(): JSX.Element {
               <LauncherThemeSetting className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7" />
               <CommunitySettings />
               <ChatTranslationSettings />
+              <GoldsrcSettings />
               {!webRuntime && <LegacyGameSettings />}
 
               {webRuntime ? (

@@ -1,3 +1,4 @@
+import { accountGoldsrcCvars } from './game/goldsrc-cvars'
 import { REWARD_CHANNELS } from '../shared/reward-inbox'
 import { pendingRewards, consumeRewards } from './reward-inbox'
 import { updateCs13Crosshair } from './game/cs13-match-launcher'
@@ -1426,6 +1427,8 @@ app.whenReady().then(async () => {
     setStandaloneVoice(preferences)
   )
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setVoicePttKey, (_, key: unknown) => saveVoicePttKey(key))
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.getCvars, () => accountGoldsrcCvars())
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.saveCvars, (_, cvars: unknown) => accountGoldsrcCvars({ cvars }))
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setCrosshair, async (_, profile: unknown) => {
     const settings = await saveCrosshair(profile)
     await updateCs13Crosshair(settings.crosshair)

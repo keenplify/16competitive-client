@@ -1,0 +1,50 @@
+{
+  "cl_forwardspeed": [
+    0,
+    1000
+  ],
+  "cl_sidespeed": [
+    0,
+    1000
+  ],
+  "cl_backspeed": [
+    0,
+    1000
+  ],
+  "sensitivity": [
+    0.01,
+    100
+  ],
+  "zoom_sensitivity_ratio": [
+    0.01,
+    10
+  ],
+  "volume": [
+    0,
+    1
+  ],
+  "hud_centerid": [
+    0,
+    1
+  ],
+  "cl_righthand": [
+    0,
+    1
+  ],
+  "cl_dynamiccrosshair": [
+    0,
+    1
+  ],
+  "cl_crosshair_translucent": [
+    0,
+    1
+  ],
+  "cl_showfps": [
+    0,
+    1
+  ],
+  "net_graph": [
+    0,
+    3
+  ]
+}

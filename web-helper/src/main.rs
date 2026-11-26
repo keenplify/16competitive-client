@@ -43,6 +43,7 @@ mod notice_throttle;
 mod presence;
 mod runtime;
 mod self_update;
+mod goldsrc_cvars;
 mod settings_bridge;
 mod compatibility_report;
 mod installation_version;
@@ -145,6 +146,8 @@ fn helper_fingerprint() -> String {
         include_bytes!("main.rs").as_slice(),
         include_bytes!("lib.rs").as_slice(),
         include_bytes!("settings_bridge.rs").as_slice(),
+        include_bytes!("goldsrc_cvars.rs").as_slice(),
+        include_bytes!("../../src/shared/goldsrc-cvars.json").as_slice(),
         include_bytes!("compatibility_report.rs").as_slice(),
         include_bytes!("self_update.rs").as_slice(),
         include_bytes!("tray.rs").as_slice(),
@@ -953,6 +956,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
             return compatibility::launch(connection, api, token, &root, proton.as_ref(), ready);
         }
     }
+    let cvar_args = if connection.game() == "cs16" { goldsrc_cvars::load(api, token) } else { Vec::new() };
     let scanner_bundle = native_bundle::prepare(&user_config_dir()?)
         .map_err(|e| desktop_session::preparation_error(&e, "NATIVE_BUNDLE_FAILED"))?;
     if inspector::check_device(&scanner_bundle, api).map_err(|e| desktop_session::preparation_error(&e, "DEVICE_CHECK_FAILED"))?["banned"] == true {
@@ -1172,6 +1176,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         } else {
             Command::new(&exe)
         };
+    command.args(cvar_args);
     command.current_dir(&root);
     #[cfg(target_os = "linux")]
     {

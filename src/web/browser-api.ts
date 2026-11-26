@@ -1,3 +1,5 @@
+import { allowedHelperApiOrigin } from '../shared/web-helper-link'
+import { parseGoldsrcCvars } from '../shared/goldsrc-cvars'
 import { createWebDiagnosticReports } from './diagnostic-reports'
 import { parseRewardInbox, validRewardIds } from '../shared/reward-inbox'
 import { parseGameVersion, type GameVersion } from '../shared/game-version'
@@ -293,6 +295,23 @@ const jsonPost = <T>(path: string, body?: unknown): Promise<T> =>
       ...(body === undefined ? {} : { body: JSON.stringify(body) })
     }
   })
+
+async function browserGoldsrcCvars(cvars?: Record<string, number>): Promise<Record<string, number>> {
+  const token = getWebSessionToken()
+  const nodes = await browserMatchmakingApi.getNodes()
+  const { selectedNodeId } = await browserMatchmakingApi.getPreferences()
+  const healthy = nodes.filter(node => node.available && node.latencyMs != null &&
+    allowedHelperApiOrigin(node.publicApiUrl, import.meta.env.DEV))
+  healthy.sort((a, b) => Number(b.id === selectedNodeId) - Number(a.id === selectedNodeId) ||
+    a.latencyMs! - b.latencyMs!)
+  if (getWebSessionToken() !== token) throw new Error('ACCOUNT_CHANGED')
+  const result = await requestJson<{ cvars: unknown }>('/auth/goldsrc-cvars/', {
+    authenticated: true, baseUrl: healthy[0]?.publicApiUrl ?? currentApiOrigin(),
+    init: cvars ? { method: 'PUT', body: JSON.stringify({ cvars: parseGoldsrcCvars(cvars) }) } : undefined
+  })
+  if (getWebSessionToken() !== token) throw new Error('ACCOUNT_CHANGED')
+  return parseGoldsrcCvars(result.cvars)
+}
 
 async function customGameRequest<T>(
   path: string,
@@ -1207,6 +1226,8 @@ const api: Window['api'] = {
       localStorage.setItem(PTT_KEYS_KEY, JSON.stringify(next))
       return settings
     },
+    getCvars: () => browserGoldsrcCvars(),
+    saveCvars: cvars => browserGoldsrcCvars(cvars),
     async setCrosshair(profile) {
       return saveBrowserCrosshair(
         profile,

@@ -16,6 +16,8 @@ for (const source of [
   'web-helper/src/main.rs',
   'web-helper/src/lib.rs',
   'web-helper/src/settings_bridge.rs',
+  'web-helper/src/goldsrc_cvars.rs',
+  'src/shared/goldsrc-cvars.json',
   'web-helper/src/compatibility_report.rs',
   'web-helper/src/self_update.rs',
   'web-helper/src/tray.rs',

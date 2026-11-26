@@ -362,6 +362,7 @@ pub fn launch(
         std::thread::spawn(move || steam_proton::native_library_path(&root, &home))
     };
     let config = user_config_dir()?;
+    let cvar_args = goldsrc_cvars::load(api, token);
     let ownership = session_mode::VoiceOwnership::start(&config, &server.id)?;
     let _mode = session_mode::Lease::native_wait(&config)?;
     let preferences = settings_bridge::load()?.settings;
@@ -398,6 +399,7 @@ pub fn launch(
             }
         }
         let mut command = Command::new(&executable);
+        command.args(cvar_args);
         let pattern = launch_pattern();
         #[cfg(windows)]
         command.args(cs16_standalone_windows_args(&root, &pattern.cs16)?);

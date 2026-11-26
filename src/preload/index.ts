@@ -279,6 +279,8 @@ const gameSettings: GameSettingsApi = {
   setNativeVoice: (preferences) =>
     ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setNativeVoice, preferences),
   setVoicePttKey: (key) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setVoicePttKey, key),
+  getCvars: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.getCvars),
+  saveCvars: (cvars) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.saveCvars, cvars),
   setCrosshair: (profile) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setCrosshair, profile),
   setNextClientIntegration: (enabled) =>
     ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setNextClientIntegration, enabled),
