@@ -5277,3 +5277,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Community Rooms
 
 - The Join button now shows whether a community room is accessible.
+
+## v2026.1127.4 — 2026-11-26
+
+### CS 1.3 Match Startup
+
+- Added missing match autoexec setup from the partner installation.
+- Improved partner bootstrap and match startup delivery to the correct game process.
