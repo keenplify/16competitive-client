@@ -940,6 +940,8 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         &pattern.cs16
     };
     let (root, exe, mut mod_dir) = managed_installations::choose(api, token, connection.game()).map_err(|e| desktop_session::preparation_error(&e, "INSTALLATION_SELECTION_FAILED"))?;
+    #[cfg(windows)]
+    let wrapper_engine = managed_installations::wrapper_engine(&exe, &root, connection.game())?;
     launch_diagnostics::set_executable(exe.file_name().and_then(|name| name.to_str()));
     // Windows uses the approved WON adapter directly for both cstrike and cstrk13.
     // Wine and older bundles still need the compatibility runtime.
@@ -1017,8 +1019,8 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     #[cfg(windows)]
     let mut startup_bridge = startup_bridge::Bridge::prepare(
         &game_dir,
-        connection.game() == "cs16" && !next_client
-            && !cs16_requires_steam(&root, next_client, gold_client),
+        wrapper_engine.is_some() || (connection.game() == "cs16" && !next_client
+            && !cs16_requires_steam(&root, next_client, gold_client)),
     ).map_err(|_| "STARTUP_CONFIG_FAILED")?;
     if connection.game() == "cs16" && cs16_requires_steam(&root, next_client, gold_client) {
         #[cfg(target_os = "linux")]
@@ -1030,6 +1032,9 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         token,
         match_id: &connection.match_id,
         executable: &exe,
+        #[cfg(windows)]
+        runtime_executable: wrapper_engine.as_deref().unwrap_or(&exe),
+        #[cfg(not(windows))]
         runtime_executable: &exe,
         game_directory: &game_dir,
         // The direct legacy adapter is standalone; the native CS1.6 adapter
@@ -1163,6 +1168,8 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     if let Some(stamp) = &winter_stamp {
         crosshair_commands.push_str(&format!("\nsetinfo _wf {stamp}\n"));
     }
+    #[cfg(windows)]
+    if wrapper_engine.is_some() { crosshair_commands.push_str(&goldsrc_cvars::config_commands(&cvar_args)); }
     startup = if connection.game() == "cs16" && !next_client {
         Some(cs16_startup_file(&game_dir, connection, &crosshair_commands).map_err(|_| "STARTUP_CONFIG_FAILED")?)
     } else {
@@ -1257,6 +1264,8 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
             .as_ref()
             .and_then(|(path, _)| path.file_name())
             .ok_or("Missing CS 1.6 config")?;
+        #[cfg(windows)]
+        if wrapper_engine.is_some() { startup_bridge.handoff(name.to_str().ok_or("Invalid startup filename")?)?; }
         command.arg("+exec").arg(name);
     }
     command
@@ -1290,7 +1299,11 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     );
     let mut owned_game = None;
     let wait_result = (|| -> Result<(), String> {
-        owned_game = Some(game_startup.wait().map_err(|e| desktop_session::preparation_error(&e, "GAME_STARTUP_FAILED"))?);
+        #[cfg(windows)]
+        let discovered = match &wrapper_engine { Some(engine) => game_startup.wait_for_wrapper(&child, engine), None => game_startup.wait() };
+        #[cfg(not(windows))]
+        let discovered = game_startup.wait();
+        owned_game = Some(discovered.map_err(|e| desktop_session::preparation_error(&e, "GAME_STARTUP_FAILED"))?);
         #[cfg(target_os = "linux")]
         let mut startup_notice = linux_startup_notice::Watch::new();
         #[cfg(target_os = "linux")]

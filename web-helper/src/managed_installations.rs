@@ -165,6 +165,17 @@ pub fn fetch(api: &str, token: &str) -> Result<Option<Policy>, String> {
     policy.validate()?;
     Ok(Some(policy))
 }
+#[cfg(windows)]
+pub fn wrapper_engine(executable: &Path, root: &Path, game: &str) -> Result<Option<PathBuf>, String> {
+    // This partner bootstrap starts a sibling engine with its own argument list.
+    if game != "cs16" || !executable.file_name().is_some_and(|n| n.eq_ignore_ascii_case("OlagueRCStrike16.exe")) {
+        return Ok(None);
+    }
+    let engine = root.join("hl.exe");
+    if !plain_file(&engine) { return Err("Partner engine hl.exe is missing".into()); }
+    Ok(Some(engine))
+}
+
 pub fn choose(api: &str, token: &str, game: &str) -> Result<(PathBuf, PathBuf, String), String> {
     if let Some(policy) = fetch(api, token)? {
         let found = policy.resolve(game)?;

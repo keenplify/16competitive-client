@@ -364,6 +364,8 @@ pub fn launch(
     };
     let config = user_config_dir()?;
     let cvar_args = goldsrc_cvars::load(api, token);
+    #[cfg(windows)]
+    let wrapper_engine = managed_installations::wrapper_engine(&executable, &root, &server.game)?;
     let ownership = session_mode::VoiceOwnership::start(&config, &server.id)?;
     let _mode = session_mode::Lease::native_wait(&config)?;
     let preferences = settings_bridge::load()?.settings;
@@ -391,7 +393,25 @@ pub fn launch(
     )?;
     #[cfg(windows)]
     let mut installation = None;
+    #[cfg(windows)]
+    let mut wrapper_file = None;
+    #[cfg(windows)]
+    let mut bridge = startup_bridge::Bridge::prepare(&root.join(&mod_dir), wrapper_engine.is_some())?;
     let result = (|| -> Result<(), String> {
+        #[cfg(windows)]
+        if wrapper_engine.is_some() {
+            use std::io::Write;
+            let filename = format!("16competitive_web_{}.cfg", &uuid::Uuid::new_v4().simple().to_string()[..16]);
+            let path = root.join(&mod_dir).join(&filename);
+            let mut contents = goldsrc_cvars::config_commands(&cvar_args);
+            contents.push_str(&"wait\n".repeat(20));
+            if let Some(ticket) = &server.ticket { contents.push_str(&format!("setinfo _16p {ticket}\n")); }
+            contents.push_str(&format!("connect {}:{}\n",server.host,server.port));
+            let mut file = fs::OpenOptions::new().create_new(true).write(true).open(&path).map_err(|e| e.to_string())?;
+            wrapper_file = Some((path, contents));
+            file.write_all(wrapper_file.as_ref().unwrap().1.as_bytes()).and_then(|_| file.sync_all()).map_err(|e| e.to_string())?;
+            bridge.handoff(&filename)?;
+        }
         #[cfg(windows)]
         {
             installation = windows_native::WindowsInstall::install(&root, &bundle)?;
@@ -467,7 +487,11 @@ pub fn launch(
         let mut child = command.spawn().map_err(|_| "Partner game launch failed")?;
         let mut owned = None;
         let run = (|| -> Result<(), String> {
-            owned = Some(startup.wait()?);
+            #[cfg(windows)]
+            let discovered = match &wrapper_engine { Some(engine) => startup.wait_for_wrapper(&child, engine), None => startup.wait() };
+            #[cfg(not(windows))]
+            let discovered = startup.wait();
+            owned = Some(discovered?);
             mark_launched(api, token, launch)?;
             ready()?;
             ownership.ready(&server.id, &session.directory)?;
@@ -503,6 +527,8 @@ pub fn launch(
         }
         run
     })();
+    #[cfg(windows)]
+    let result = { let cleanup = cleanup_owned_file(wrapper_file); let restore = bridge.restore(); result.and(cleanup).and(restore) };
     session.stop();
     #[cfg(windows)]
     let _installation = installation; // Keep the verified host/module installed.

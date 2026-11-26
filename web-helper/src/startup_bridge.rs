@@ -13,7 +13,7 @@ const MISSING_CONTENTS: &[u8] =
     b"// 16competitive temporary missing-startup bridge v1\nstuffcmds\n";
 
 #[derive(Default)]
-pub struct Bridge(Option<File>, bool);
+pub struct Bridge(Option<File>, bool, Vec<u8>);
 
 // A physical script can be absent while GoldSrc finds one in its fallback
 // directory or a PAK. Do not shadow those installations. This repair is for
@@ -96,16 +96,8 @@ impl Bridge {
             Err(e) => return Err(e.to_string()),
             Ok(_) => false,
         };
-        #[cfg(windows)]
-        let remove_created = missing
-            || fs::symlink_metadata(&path).is_ok_and(|m| m.len() == MISSING_CONTENTS.len() as u64);
-        #[cfg(not(windows))]
-        let remove_created = false;
-        if !missing {
-            let metadata = ordinary(&path, false)?;
-            if metadata.len() != 0 && metadata.len() != CONTENTS.len() as u64 && !remove_created {
-                return Ok(Self::default());
-            }
+        if !missing && ordinary(&path, false)?.len() > 192 {
+            return Ok(Self::default());
         }
         let mut options = OpenOptions::new();
         options.read(true).write(true).create_new(missing);
@@ -131,30 +123,51 @@ impl Bridge {
         if !metadata.is_file() {
             return Err("Startup script is not a file".into());
         }
+        let mut current = Vec::new();
+        (&mut file).take(193).read_to_end(&mut current).map_err(|e| e.to_string())?;
         #[cfg(windows)]
-        let contents = if remove_created {
-            MISSING_CONTENTS
-        } else {
-            CONTENTS
-        };
+        let remove_created = missing || current.starts_with(MISSING_CONTENTS);
+        #[cfg(not(windows))]
+        let remove_created = false;
+        #[cfg(windows)]
+        let contents = if remove_created { MISSING_CONTENTS } else { CONTENTS };
         #[cfg(not(windows))]
         let contents = CONTENTS;
-        if metadata.len() != 0 {
-            // Recognize only our exact interrupted bridge, with bounded reads.
-            if metadata.len() != contents.len() as u64 {
-                return Ok(Self::default());
-            }
-            let mut current = vec![0; contents.len()];
-            file.read_exact(&mut current).map_err(|e| e.to_string())?;
-            if current != contents {
-                return Ok(Self::default());
-            }
-        } else {
+        if !current.is_empty() && current != contents {
+            // Recognize only the exact form written by handoff, including its generated ID.
+            let interrupted = current.strip_prefix(contents)
+                .and_then(|tail| std::str::from_utf8(tail).ok())
+                .and_then(|tail| tail.strip_prefix("exec 16competitive_web_"))
+                .and_then(|id| id.strip_suffix(".cfg\n"))
+                .is_some_and(|id| id.len() == 16 && id.bytes().all(|b| b.is_ascii_hexdigit()));
+            if !interrupted { return Ok(Self::default()); }
+        }
+        if current != contents {
+            file.seek(SeekFrom::Start(0)).map_err(|e| e.to_string())?;
             file.write_all(contents).map_err(|e| e.to_string())?;
+            file.set_len(contents.len() as u64).map_err(|e| e.to_string())?;
             file.sync_all().map_err(|e| e.to_string())?;
         }
         eprintln!("Standalone startup: temporary command bridge active");
-        Ok(Self(Some(file), remove_created))
+        Ok(Self(Some(file), remove_created, contents.to_vec()))
+    }
+
+    #[cfg(windows)]
+    pub fn handoff(&mut self, filename: &str) -> Result<(), String> {
+        let id = filename.strip_prefix("16competitive_web_").and_then(|s| s.strip_suffix(".cfg"))
+            .ok_or("Invalid wrapper startup file")?;
+        if id.len() != 16 || !id.bytes().all(|b| b.is_ascii_hexdigit()) { return Err("Invalid wrapper startup file".into()); }
+        let file = self.0.as_mut().ok_or("Partner wrapper needs an available startup script or must forward launch arguments")?;
+        file.seek(SeekFrom::Start(0)).map_err(|e| e.to_string())?;
+        let mut actual = vec![0; self.2.len()];
+        file.read_exact(&mut actual).map_err(|e| e.to_string())?;
+        if file.metadata().map_err(|e| e.to_string())?.len() != actual.len() as u64 || actual != self.2 {
+            return Err("Startup script changed during preparation".into());
+        }
+        let command = format!("exec {filename}\n");
+        file.write_all(command.as_bytes()).map_err(|e| e.to_string())?;
+        self.2.extend_from_slice(command.as_bytes());
+        file.sync_all().map_err(|e| e.to_string())
     }
 
     pub fn restore(&mut self) -> Result<(), String> {
@@ -163,10 +176,7 @@ impl Bridge {
         };
         // Keep the original handle: replacing or renaming the path must never
         // make cleanup truncate a different player-owned file.
-        #[cfg(windows)]
-        let contents = if self.1 { MISSING_CONTENTS } else { CONTENTS };
-        #[cfg(not(windows))]
-        let contents = CONTENTS;
+        let contents = self.2.as_slice();
         if file.metadata().map_err(|e| e.to_string())?.len() == contents.len() as u64 {
             file.seek(SeekFrom::Start(0)).map_err(|e| e.to_string())?;
             let mut current = vec![0; contents.len()];
@@ -304,6 +314,19 @@ mod tests {
         fs::write(f.script(), b"player changed this").unwrap();
         drop(bridge);
         assert_eq!(fs::read(f.script()).unwrap(), b"player changed this");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn wrapper_handoff_recovers_without_reusing_previous_credentials() {
+        let f = Fixture::new();
+        fs::write(f.script(), [MISSING_CONTENTS, b"exec 16competitive_web_1234567890abcdef.cfg\n"].concat()).unwrap();
+        let mut bridge = Bridge::prepare(&f.0, true).unwrap();
+        assert!(bridge.handoff("../other.cfg").is_err());
+        bridge.handoff("16competitive_web_0123456789abcdef.cfg").unwrap();
+        assert_eq!(fs::read(f.script()).unwrap(), [MISSING_CONTENTS,b"exec 16competitive_web_0123456789abcdef.cfg\n"].concat());
+        bridge.restore().unwrap();
+        assert!(!f.script().exists());
     }
 
     #[test]

@@ -35,6 +35,11 @@ fn arguments(bytes: &[u8]) -> Result<Vec<String>, String> {
     Ok(args)
 }
 
+#[cfg(windows)]
+pub fn config_commands(validated_args: &[String]) -> String {
+    validated_args.chunks_exact(2).map(|pair| format!("{} {}\n", pair[0].trim_start_matches('+'), pair[1])).collect()
+}
+
 fn fetch(api: &str, token: &str) -> Result<Vec<String>, String> {
     let agent = crate::assets::api_with_timeout(api, token, std::time::Duration::from_secs(5))?;
     let bytes = crate::assets::request(&agent, &format!("{api}/auth/goldsrc-cvars/"), token, 4096)?;

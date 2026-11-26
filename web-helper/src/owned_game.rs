@@ -35,6 +35,9 @@ mod windows {
         )))
     }
     fn matching(executable: &Path) -> Result<Vec<(u32, Handle)>, String> {
+        matching_parent(executable, None)
+    }
+    fn matching_parent(executable: &Path, parent: Option<u32>) -> Result<Vec<(u32, Handle)>, String> {
         let snapshot = unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };
         if snapshot == INVALID_HANDLE_VALUE {
             return Err("Could not inspect game startup".into());
@@ -54,7 +57,7 @@ mod windows {
                 .iter()
                 .position(|c| *c == 0)
                 .unwrap_or(entry.szExeFile.len());
-            if String::from_utf16_lossy(&entry.szExeFile[..length]).eq_ignore_ascii_case(&expected)
+            if parent.is_none_or(|pid| pid == entry.th32ParentProcessID) && String::from_utf16_lossy(&entry.szExeFile[..length]).eq_ignore_ascii_case(&expected)
             {
                 let handle = unsafe {
                     OpenProcess(
@@ -135,9 +138,16 @@ mod windows {
             Self::prepare(&self.executable, &self.game).map(|_| ())
         }
         pub fn wait(self) -> Result<Owned, String> {
+            self.wait_for_image(None)
+        }
+        // The spawning Child handle stays alive while we match its direct engine child.
+        pub fn wait_for_wrapper(self, child: &std::process::Child, engine: &Path) -> Result<Owned, String> {
+            Self { executable: engine.to_owned(), game: self.game }.wait_for_image(Some(child.id()))
+        }
+        fn wait_for_image(self, parent: Option<u32>) -> Result<Owned, String> {
             let deadline = Instant::now() + Duration::from_secs(45);
             loop {
-                let mut candidates = matching(&self.executable)?;
+                let mut candidates = matching_parent(&self.executable, parent)?;
                 if candidates.len() > 1 {
                     return Err("Multiple game processes appeared during startup".into());
                 }
