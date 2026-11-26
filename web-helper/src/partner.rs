@@ -274,9 +274,10 @@ pub fn start_background(api: &str, token: &str, launch: Launch) -> Result<Value,
     Ok(json!({"ok":true,"event":"launched"}))
 }
 
-fn legacy_partner_args(server: &Server, mod_dir: &str) -> Vec<String> {
+fn legacy_partner_args(server: &Server, mod_dir: &str, cvars: Vec<String>) -> Vec<String> {
     let mut args = vec!["-game".into(), mod_dir.into()];
     args.extend(launch_pattern().cs13.windows_flags.iter().flatten().cloned());
+    args.extend(cvars);
     for _ in 0..20 { args.push("+wait".into()); }
     if let Some(ticket) = &server.ticket { args.extend(["+setinfo".into(), "_16p".into(), ticket.clone()]); }
     args.extend(["+connect".into(), format!("{}:{}",server.host,server.port)]);
@@ -291,7 +292,7 @@ fn launch_legacy_partner(api: &str, token: &str, launch: &Launch, server: &Serve
     let mut command = if cfg!(target_os="linux") && executable.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("exe")) {
         let mut command = Command::new("wine"); command.arg(executable); command
     } else { Command::new(executable) };
-    command.args(legacy_partner_args(server, mod_dir)).current_dir(root)
+    command.args(legacy_partner_args(server, mod_dir, goldsrc_cvars::load(api, token))).current_dir(root)
         .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
     startup.recheck().map_err(|_| "GAME_STARTUP_FAILED")?;
     let mut child = command.spawn().map_err(desktop_session::game_spawn_failure)?;
@@ -596,7 +597,8 @@ mod tests {
         let mut server = parse_server(&value, "server").unwrap();
         assert_eq!(server.game, "cs13");
         server.ticket = Some("a".repeat(32));
-        let args = legacy_partner_args(&server, "cstrk13");
+        let args = legacy_partner_args(&server, "cstrk13", vec!["+cl_sidespeed".into(), "350".into()]);
+        assert!(args.windows(2).any(|pair| pair == ["+cl_sidespeed", "350"]));
         assert_eq!(&args[..2], &["-game", "cstrk13"]);
         assert_eq!(&args[args.len()-2..], &["+connect", "127.0.0.1:27015"]);
         assert!(!args.iter().any(|arg| arg == "-insecure" || arg == "-steam"));

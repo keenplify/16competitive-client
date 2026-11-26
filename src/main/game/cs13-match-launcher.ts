@@ -1,3 +1,4 @@
+import { loadGoldsrcLaunchArgs } from './goldsrc-cvars'
 import type { CrosshairProfile } from '../../shared/crosshair'
 import { launchStandaloneSession, standaloneSupportsCs13 } from './standalone-session'
 import { createCs13AuthFile, cs13AuthContents } from './cs13-auth-file'
@@ -141,6 +142,7 @@ export async function launchCs13Match(
       installation.runtime
     )
     const settings = await getGameSettings(true)
+    const cvarArgs = await loadGoldsrcLaunchArgs()
     const plan = cs13Adapter.buildMenuLaunchPlan(installation)
     if (!isCurrent()) return
     const { address } = await lookup(connection.host, { family: 4 })
@@ -247,7 +249,7 @@ export async function launchCs13Match(
       })
       const child = spawn(
         plan.executable,
-        [...plan.args, '-console', '-condebug', '+exec', controls.probeName, ...connectionArgs],
+        [...plan.args, ...cvarArgs, '-console', '-condebug', '+exec', controls.probeName, ...connectionArgs],
         {
           cwd: plan.cwd,
           shell: false,

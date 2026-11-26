@@ -1,6 +1,6 @@
 export const goldsrcTranslations = {
   en: {
-    'settings.cvars.title': 'CS 1.6 launch settings',
+    'settings.cvars.title': 'CS 1.3 / 1.6 launch settings',
     'settings.cvars.help': 'Choose a cvar and save a value to apply when the game starts.',
     'settings.cvars.name': 'Cvar',
     'settings.cvars.value': 'Value',
@@ -12,7 +12,7 @@ export const goldsrcTranslations = {
     'settings.cvars.loaded': 'Loaded'
   },
   ru: {
-    'settings.cvars.title': 'Настройки запуска CS 1.6',
+    'settings.cvars.title': 'Настройки запуска CS 1.3 / 1.6',
     'settings.cvars.help': 'Выберите cvar и сохраните значение для применения при запуске игры.',
     'settings.cvars.name': 'Переменная',
     'settings.cvars.value': 'Значение',
@@ -25,7 +25,7 @@ export const goldsrcTranslations = {
     'settings.cvars.loaded': 'Загружено'
   },
   tl: {
-    'settings.cvars.title': 'Mga setting sa paglunsad ng CS 1.6',
+    'settings.cvars.title': 'Mga setting sa paglunsad ng CS 1.3 / 1.6',
     'settings.cvars.help':
       'Pumili ng cvar at mag-save ng halaga para gamitin sa pagsisimula ng laro.',
     'settings.cvars.name': 'Cvar',
@@ -38,7 +38,7 @@ export const goldsrcTranslations = {
     'settings.cvars.loaded': 'Na-load'
   },
   th: {
-    'settings.cvars.title': 'การตั้งค่าเริ่มเกม CS 1.6',
+    'settings.cvars.title': 'การตั้งค่าเริ่มเกม CS 1.3 / 1.6',
     'settings.cvars.help': 'เลือก cvar และบันทึกค่าเพื่อใช้เมื่อเริ่มเกม',
     'settings.cvars.name': 'ตัวแปร',
     'settings.cvars.value': 'ค่า',
@@ -50,7 +50,7 @@ export const goldsrcTranslations = {
     'settings.cvars.loaded': 'โหลดแล้ว'
   },
   id: {
-    'settings.cvars.title': 'Pengaturan peluncuran CS 1.6',
+    'settings.cvars.title': 'Pengaturan peluncuran CS 1.3 / 1.6',
     'settings.cvars.help': 'Pilih cvar dan simpan nilainya untuk diterapkan saat gim dimulai.',
     'settings.cvars.name': 'Cvar',
     'settings.cvars.value': 'Nilai',
@@ -62,7 +62,7 @@ export const goldsrcTranslations = {
     'settings.cvars.loaded': 'Dimuat'
   },
   hi: {
-    'settings.cvars.title': 'CS 1.6 लॉन्च सेटिंग्स',
+    'settings.cvars.title': 'CS 1.3 / 1.6 लॉन्च सेटिंग्स',
     'settings.cvars.help': 'गेम शुरू होने पर लागू करने के लिए cvar चुनें और उसका मान सहेजें।',
     'settings.cvars.name': 'चर',
     'settings.cvars.value': 'मान',
@@ -74,7 +74,7 @@ export const goldsrcTranslations = {
     'settings.cvars.loaded': 'लोड हुआ'
   },
   pt: {
-    'settings.cvars.title': 'Configurações de inicialização do CS 1.6',
+    'settings.cvars.title': 'Configurações de inicialização do CS 1.3 / 1.6',
     'settings.cvars.help': 'Escolha uma cvar e salve o valor para aplicar ao iniciar o jogo.',
     'settings.cvars.name': 'Cvar',
     'settings.cvars.value': 'Valor',
@@ -87,7 +87,7 @@ export const goldsrcTranslations = {
     'settings.cvars.loaded': 'Carregado'
   },
   ja: {
-    'settings.cvars.title': 'CS 1.6 起動設定',
+    'settings.cvars.title': 'CS 1.3 / 1.6 起動設定',
     'settings.cvars.help': 'ゲーム起動時に適用する cvar を選び、値を保存してください。',
     'settings.cvars.name': '変数',
     'settings.cvars.value': '値',

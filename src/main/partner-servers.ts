@@ -1,3 +1,4 @@
+import { loadGoldsrcLaunchArgs } from './game/goldsrc-cvars'
 import { launchStandalonePartner } from './game/standalone-session'
 import { resolveServiceApiUrl } from './matchmaking-regions'
 import { validateCommunityJoin } from '../shared/community-directory'
@@ -245,13 +246,14 @@ export async function connectPartnerServer(
       }).get()
       if (!profile.ok || !profile.value.installation) throw new Error('INSTALLATION_REQUIRED')
       const plan = cs13Adapter.buildMenuLaunchPlan(profile.value.installation)
+      const cvarArgs = await loadGoldsrcLaunchArgs()
       const { ticket } = await requestPartnerLaunchTicket(id, token)
       await launchOrdinaryCounterStrike(async () => {
         if (getSessionToken() !== token || matchmakingConnection.isBusyForPartnerServer())
           throw new Error('MATCH_BUSY')
         const child = spawn(
           plan.executable,
-          [...plan.args, ...partnerLaunchArguments(address, server.port, ticket)],
+          [...plan.args, ...cvarArgs, ...partnerLaunchArguments(address, server.port, ticket)],
           {
             cwd: plan.cwd,
             shell: false,

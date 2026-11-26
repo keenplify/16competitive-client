@@ -20,3 +20,14 @@ export async function accountGoldsrcCvars(update?: {
   if (getSessionToken() !== token) throw new Error('ACCOUNT_CHANGED')
   return parseGoldsrcCvars(body.cvars)
 }
+
+export async function loadGoldsrcLaunchArgs(): Promise<string[]> {
+  if (!getSessionToken()) return []
+  try {
+    const cvars = await accountGoldsrcCvars()
+    return Object.entries(cvars).flatMap(([name, value]) => ['+' + name, String(value)])
+  } catch {
+    console.warn('[GameLaunch] GoldSrc account settings unavailable for this launch')
+    return []
+  }
+}

@@ -412,7 +412,7 @@ export function OnboardingPage(): JSX.Element {
                   selected={mode === 'custom'}
                   onClick={() => setMode('custom')}
                 />
-                {games !== 'cs13' && <GoldsrcSettings />}
+                <GoldsrcSettings />
               </div>
             )}
 

@@ -956,7 +956,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
             return compatibility::launch(connection, api, token, &root, proton.as_ref(), ready);
         }
     }
-    let cvar_args = if connection.game() == "cs16" { goldsrc_cvars::load(api, token) } else { Vec::new() };
+    let cvar_args = goldsrc_cvars::load(api, token);
     let scanner_bundle = native_bundle::prepare(&user_config_dir()?)
         .map_err(|e| desktop_session::preparation_error(&e, "NATIVE_BUNDLE_FAILED"))?;
     if inspector::check_device(&scanner_bundle, api).map_err(|e| desktop_session::preparation_error(&e, "DEVICE_CHECK_FAILED"))?["banned"] == true {

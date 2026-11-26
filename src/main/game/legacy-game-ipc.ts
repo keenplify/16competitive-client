@@ -1,3 +1,4 @@
+import { loadGoldsrcLaunchArgs } from './goldsrc-cvars'
 import { app, dialog, ipcMain, shell } from 'electron'
 import { spawn } from 'node:child_process'
 import { join } from 'node:path'
@@ -31,9 +32,10 @@ export function registerLegacyGameIpc(): void {
           join(plan.cwd, mod),
           process.platform
         )
+        const cvarArgs = await loadGoldsrcLaunchArgs()
         const fresh = cs13Adapter.buildMenuLaunchPlan(installation)
         if (matchmakingConnection.isBusyForDemo()) throw new LegacyInstallationError('busy')
-        const child = spawn(fresh.executable, fresh.args, {
+        const child = spawn(fresh.executable, [...fresh.args, ...cvarArgs], {
           cwd: fresh.cwd,
           shell: false,
           detached: true,
