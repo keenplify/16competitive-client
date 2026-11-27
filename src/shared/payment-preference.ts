@@ -3,7 +3,7 @@ export function preferredPaymentProvider(
   country: string | null | undefined,
   timeZone: string,
   languages: readonly string[]
-): 'paymongo' | 'paymento' {
+): 'paymongo' | 'paymento' | 'polar' {
   if (
     country?.toUpperCase() === 'PH' ||
     timeZone === 'Asia/Manila' ||
@@ -12,12 +12,12 @@ export function preferredPaymentProvider(
     )
   )
     return 'paymongo'
-  return 'paymento'
+  return 'polar'
 }
 
 /** Both initial selection and menu ordering use the available checkout methods. */
 export function topUpMethods(
-  preferred: 'paymongo' | 'paymento',
+  preferred: 'paymongo' | 'paymento' | 'polar',
   priority: string | null | undefined,
   snapshot: import('./payments').PaymentSnapshot | null,
   communityOnly?: string,
@@ -26,7 +26,9 @@ export function topUpMethods(
   const providers = (
     preferred === 'paymongo'
       ? ['paymongo', 'paymento', 'polar']
-      : ['paymento', 'paymongo', 'polar']
+      : preferred === 'polar'
+        ? ['polar', 'paymento', 'paymongo']
+        : ['paymento', 'paymongo', 'polar']
   ).map((id) => ({
     id,
     label:

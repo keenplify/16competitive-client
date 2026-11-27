@@ -15,7 +15,7 @@ interface PaymentsState {
   showHistory: () => void
   hideHistory: () => void
   methodId: string
-  preferredProvider: 'paymento' | 'paymongo'
+  preferredProvider: 'paymento' | 'paymongo' | 'polar'
   methodResolved: boolean
   closeDetails: () => void
   activeManualId: string | null
@@ -50,8 +50,8 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
     void get().load(undefined, undefined, true)
   },
   hideHistory: () => set({ historyOpen: false }),
-  methodId: 'paymento',
-  preferredProvider: 'paymento',
+  methodId: 'polar',
+  preferredProvider: 'polar',
   methodResolved: false,
   closeDetails: () => set({ activeManualId: null }),
   activeManualId: null,
@@ -134,7 +134,7 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
     set({
       customOpen: false,
       historyOpen: false,
-      methodId: 'paymento',
+      methodId: 'polar',
       preferredProvider: preferredPaymentProvider(
         useAuthStore.getState().session?.player.flagCountryCode,
         Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -192,7 +192,7 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
             return { snapshot }
           return {
             snapshot,
-            methodId: options.find((option) => !option.disabled)?.id ?? (policy?.communityBrandOnly ? '' : 'paymento'),
+            methodId: options.find((option) => !option.disabled)?.id ?? (policy?.communityBrandOnly ? '' : 'polar'),
             methodResolved: false
           }
         })
