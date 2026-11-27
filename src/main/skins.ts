@@ -242,7 +242,11 @@ export const createWithdrawal = async (input: unknown) =>
 export const createPayment = async (requestId: unknown, amount: unknown, provider?: unknown) => {
   const selected = validatePaymentProvider(provider)
   const data = await playerRequest(
-    selected === 'paymongo' ? '/payments/paymongo' : '/payments/p-cash',
+    selected === 'paymongo'
+      ? '/payments/paymongo'
+      : selected === 'polar'
+        ? '/payments/polar'
+        : '/payments/p-cash',
     {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -267,7 +271,7 @@ export const createPayment = async (requestId: unknown, amount: unknown, provide
 export const refreshPayment = async (id: unknown, provider?: unknown) =>
   parsePaymentSnapshot(
     await playerRequest(
-      `/payments/${validatePaymentProvider(provider) === 'paymongo' ? 'paymongo' : 'p-cash'}/${validatePaymentId(id)}/refresh`,
+      `/payments/${validatePaymentProvider(provider) === 'paymongo' ? 'paymongo' : validatePaymentProvider(provider) === 'polar' ? 'polar' : 'p-cash'}/${validatePaymentId(id)}/refresh`,
       {
         method: 'POST',
         signal: AbortSignal.timeout(25_000)

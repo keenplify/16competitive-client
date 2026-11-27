@@ -3,6 +3,9 @@ export const paymentTranslations = {
     'payments.paymongoHelp':
       'Pay in PHP through PayMongo. Prices follow the current USD exchange rate. P-Cash is added after payment verification.',
     'payments.paymongoCheckout': 'Pay with PayMongo',
+    'payments.polarHelp':
+      'Pay with a card through Polar. P-Cash is added after payment verification.',
+    'payments.polarCheckout': 'Pay with Polar',
     'payments.updated': 'Top-ups updated.',
     'payments.checkoutReady': 'Checkout created. Open top-up history to continue payment.',
 
@@ -74,6 +77,9 @@ export const paymentTranslations = {
     'payments.paymongoHelp':
       'Оплатите в PHP через PayMongo по текущему курсу USD. P-Cash зачисляется после проверки платежа.',
     'payments.paymongoCheckout': 'Оплатить через PayMongo',
+    'payments.polarHelp':
+      'Оплата картой через Polar. P-Cash добавляется после проверки платежа.',
+    'payments.polarCheckout': 'Оплатить через Polar',
     'payments.updated': 'Пополнения обновлены.',
     'payments.checkoutReady': 'Платёж создан. Откройте историю пополнений для оплаты.',
 
@@ -145,6 +151,9 @@ export const paymentTranslations = {
     'payments.paymongoHelp':
       'Magbayad ng PHP gamit ang PayMongo sa kasalukuyang USD exchange rate. Idadagdag ang P-Cash pagkatapos maberipika ang bayad.',
     'payments.paymongoCheckout': 'Magbayad gamit ang PayMongo',
+    'payments.polarHelp':
+      'Magbayad gamit ang card sa Polar. Idadagdag ang P-Cash pagkatapos ma-verify ang bayad.',
+    'payments.polarCheckout': 'Magbayad gamit ang Polar',
     'payments.updated': 'Na-update ang mga top-up.',
     'payments.checkoutReady':
       'Nagawa ang checkout. Buksan ang kasaysayan ng top-up upang magbayad.',
@@ -218,6 +227,8 @@ export const paymentTranslations = {
     'payments.paymongoHelp':
       'ชำระเป็น PHP ผ่าน PayMongo ตามอัตราแลกเปลี่ยน USD ปัจจุบัน เพิ่ม P-Cash หลังตรวจสอบการชำระเงิน',
     'payments.paymongoCheckout': 'ชำระด้วย PayMongo',
+    'payments.polarHelp': 'ชำระด้วยบัตรผ่าน Polar เพิ่ม P-Cash หลังตรวจสอบการชำระเงิน',
+    'payments.polarCheckout': 'ชำระด้วย Polar',
     'payments.updated': 'อัปเดตการเติมเงินแล้ว',
     'payments.checkoutReady': 'สร้างการชำระเงินแล้ว เปิดประวัติการเติมเงินเพื่อชำระต่อ',
 
@@ -289,6 +300,9 @@ export const paymentTranslations = {
     'payments.paymongoHelp':
       'Bayar dalam PHP melalui PayMongo dengan kurs USD saat ini. P-Cash ditambahkan setelah verifikasi pembayaran.',
     'payments.paymongoCheckout': 'Bayar dengan PayMongo',
+    'payments.polarHelp':
+      'Bayar dengan kartu melalui Polar. P-Cash ditambahkan setelah verifikasi pembayaran.',
+    'payments.polarCheckout': 'Bayar dengan Polar',
     'payments.updated': 'Isi ulang diperbarui.',
     'payments.checkoutReady':
       'Checkout dibuat. Buka riwayat isi ulang untuk melanjutkan pembayaran.',
@@ -361,6 +375,9 @@ export const paymentTranslations = {
     'payments.paymongoHelp':
       'PayMongo से वर्तमान USD विनिमय दर पर PHP में भुगतान करें। भुगतान सत्यापित होने के बाद P-Cash जोड़ा जाता है।',
     'payments.paymongoCheckout': 'PayMongo से भुगतान करें',
+    'payments.polarHelp':
+      'Polar से कार्ड से भुगतान करें। भुगतान सत्यापन के बाद P-Cash जुड़ता है।',
+    'payments.polarCheckout': 'Polar से भुगतान करें',
     'payments.updated': 'टॉप-अप अपडेट किए गए।',
     'payments.checkoutReady': 'चेकआउट बन गया। भुगतान जारी रखने के लिए टॉप-अप इतिहास खोलें।',
 
@@ -432,6 +449,9 @@ export const paymentTranslations = {
     'payments.paymongoHelp':
       'Pague em PHP pelo PayMongo com a taxa de câmbio USD atual. P-Cash é adicionado após a verificação do pagamento.',
     'payments.paymongoCheckout': 'Pagar com PayMongo',
+    'payments.polarHelp':
+      'Pague com cartão pelo Polar. O P-Cash é adicionado após a verificação do pagamento.',
+    'payments.polarCheckout': 'Pagar com Polar',
     'payments.updated': 'Recargas atualizadas.',
     'payments.checkoutReady':
       'Checkout criado. Abra o histórico de recargas para continuar o pagamento.',
@@ -504,6 +524,8 @@ export const paymentTranslations = {
     'payments.paymongoHelp':
       'PayMongoで現在のUSD為替レートに基づくPHPで支払います。支払いを確認するとP-Cashが追加されます。',
     'payments.paymongoCheckout': 'PayMongoで支払う',
+    'payments.polarHelp': 'Polarでカード支払い。支払い確認後にP-Cashが加算されます。',
+    'payments.polarCheckout': 'Polarで支払う',
     'payments.updated': 'チャージを更新しました。',
     'payments.checkoutReady': '支払いを作成しました。チャージ履歴から支払いを続けてください。',
 

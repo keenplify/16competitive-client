@@ -36,7 +36,7 @@ interface PaymentsState {
   toggle: () => void
   close: () => void
   setAmount: (amount: string) => void
-  load: (orderId?: string, provider?: 'paymento' | 'paymongo', feedback?: boolean) => Promise<void>
+  load: (orderId?: string, provider?: 'paymento' | 'paymongo' | 'polar', feedback?: boolean) => Promise<void>
   create: () => Promise<void>
 }
 
@@ -231,7 +231,7 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
       await window.api.skins.createPayment(
         crypto.randomUUID(),
         usd,
-        methodId === 'paymongo' ? 'paymongo' : 'paymento'
+        methodId === 'paymongo' ? 'paymongo' : methodId === 'polar' ? 'polar' : 'paymento'
       )
       toast.update(notification, {
         render: translate(useLanguageStore.getState().language, 'payments.checkoutReady'),

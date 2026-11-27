@@ -90,12 +90,15 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
   const activeManual = snapshot?.manual?.orders.find((order) => order.id === activeManualId)
   const manualMethod = snapshot?.manual?.methods.find((method) => method.id === methodId)
   const paymongo = methodId === 'paymongo'
-  const manual = methodId !== 'paymento' && !paymongo
+  const polar = methodId === 'polar'
+  const manual = methodId !== 'paymento' && !paymongo && !polar
   const priceMethod = paymongo
     ? snapshot?.paymongo?.minorPerUsd
       ? { currency: 'PHP', minorPerUsd: snapshot.paymongo.minorPerUsd }
       : undefined
-    : manualMethod
+    : polar
+      ? { currency: 'USD', minorPerUsd: 100 }
+      : manualMethod
   const usd = usdFromPCash(amount)
   const price =
     usd !== null && (paymongo ? priceMethod : !manual || manualMethod)
@@ -254,7 +257,9 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
                     ? !manualMethod
                     : paymongo
                       ? !snapshot?.paymongo?.enabled
-                      : !snapshot?.enabled)
+                      : polar
+                        ? !snapshot?.polar?.enabled
+                        : !snapshot?.enabled)
                 }
               >
                 {busy ? (
@@ -273,7 +278,9 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
                     ? 'payments.manualHelp'
                     : paymongo
                       ? 'payments.paymongoHelp'
-                      : 'payments.help'
+                      : polar
+                        ? 'payments.polarHelp'
+                        : 'payments.help'
                 )}
               </p>
               <div className="h-16 overflow-y-auto text-sm" role="status" aria-live="polite">
@@ -282,7 +289,7 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
                     {t(manual ? 'payments.manualError' : 'payments.error')}
                   </p>
                 ) : snapshot && (!methods.some(method => !method.disabled) ||
-                  !(paymongo ? snapshot.paymongo?.enabled : snapshot.enabled) &&
+                  !(paymongo ? snapshot.paymongo?.enabled : polar ? snapshot.polar?.enabled : snapshot.enabled) &&
                   !manual) ? (
                   <p className="text-neutral-300">{t('payments.unavailable')}</p>
                 ) : busy ? (

@@ -210,9 +210,9 @@ export interface SkinsApi {
   createPayment(
     requestId: string,
     amount: number,
-    provider?: 'paymento' | 'paymongo'
+    provider?: 'paymento' | 'paymongo' | 'polar'
   ): Promise<PaymentOrder>
-  refreshPayment(id: string, provider?: 'paymento' | 'paymongo'): Promise<PaymentSnapshot>
+  refreshPayment(id: string, provider?: 'paymento' | 'paymongo' | 'polar'): Promise<PaymentSnapshot>
   list(weaponKey?: string): Promise<Skin[]>
   mine(gameVersion?: GameVersion): Promise<OwnedSkin[]>
   resaleQuote(skinId: string): Promise<SkinResaleQuote>

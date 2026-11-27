@@ -639,23 +639,30 @@ const skins = {
       })
     )
   },
-  async createPayment(requestId: string, amount: number, provider?: 'paymento' | 'paymongo') {
+  async createPayment(requestId: string, amount: number, provider?: 'paymento' | 'paymongo' | 'polar') {
     // Reserve the tab during the user's click, before awaiting the API (popup blockers).
     const checkout = window.open('about:blank', '_blank')
     if (checkout) checkout.opener = null
     try {
       const order = parsePaymentOrder(
-        await requestJson(provider === 'paymongo' ? '/payments/paymongo' : '/payments/p-cash', {
-          authenticated: true,
-          timeoutMs: 25_000,
-          init: {
-            method: 'POST',
-            body: JSON.stringify({
-              requestId: validatePaymentId(requestId),
-              amount: validatePaymentAmount(amount)
-            })
+        await requestJson(
+          provider === 'paymongo'
+            ? '/payments/paymongo'
+            : provider === 'polar'
+              ? '/payments/polar'
+              : '/payments/p-cash',
+          {
+            authenticated: true,
+            timeoutMs: 25_000,
+            init: {
+              method: 'POST',
+              body: JSON.stringify({
+                requestId: validatePaymentId(requestId),
+                amount: validatePaymentAmount(amount)
+              })
+            }
           }
-        })
+        )
       )
       if (order.checkoutUrl && checkout && !checkout.closed)
         checkout.location.replace(order.checkoutUrl)
@@ -666,10 +673,10 @@ const skins = {
       throw error
     }
   },
-  async refreshPayment(id: string, provider?: 'paymento' | 'paymongo') {
+  async refreshPayment(id: string, provider?: 'paymento' | 'paymongo' | 'polar') {
     return parsePaymentSnapshot(
       await requestJson(
-        `/payments/${provider === 'paymongo' ? 'paymongo' : 'p-cash'}/${validatePaymentId(id)}/refresh`,
+        `/payments/${provider === 'paymongo' ? 'paymongo' : provider === 'polar' ? 'polar' : 'p-cash'}/${validatePaymentId(id)}/refresh`,
         {
           authenticated: true,
           timeoutMs: 25_000,

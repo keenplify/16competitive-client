@@ -14,16 +14,17 @@ export const usdFromPCash = (value: string): number | null => {
 
 export type PaymentStatus = 'CREATING' | 'PENDING' | 'CREDITED' | 'FAILED' | 'EXPIRED' | 'CANCELLED'
 
-export type PaymentProvider = 'paymento' | 'paymongo'
+export type PaymentProvider = 'paymento' | 'paymongo' | 'polar'
 export const validatePaymentProvider = (value: unknown): PaymentProvider => {
   if (value === undefined || value === 'paymento') return 'paymento'
   if (value === 'paymongo') return value
+  if (value === 'polar') return value
   throw new Error('INVALID_PAYMENT_REQUEST')
 }
 export interface PaymentOrder {
   provider?: PaymentProvider
   chargeMinor?: number
-  currency?: 'PHP'
+  currency?: 'PHP' | 'USD'
   minorPerUsd?: number
   id: string
   amount: number
@@ -45,6 +46,12 @@ export interface PaymentSnapshot {
     enabled: boolean
     currency: 'PHP'
     minorPerUsd: number | null
+    orders: PaymentOrder[]
+  }
+  polar?: {
+    communityId?: string | null
+    enabled: boolean
+    currency: 'USD'
     orders: PaymentOrder[]
   }
 }
@@ -88,7 +95,7 @@ export const parsePaymentOrder = (value: unknown): PaymentOrder => {
     throw new Error('INVALID_PAYMENT_RESPONSE')
   const id = validatePaymentId(data.id)
   const amount = validatePaymentAmount(data.amount)
-  if (provider === 'paymongo' && data.pCashAmount !== amount * PCASH_PER_USDT)
+  if ((provider === 'paymongo' || provider === 'polar') && data.pCashAmount !== amount * PCASH_PER_USDT)
     throw new Error('INVALID_PAYMENT_RESPONSE')
   if (
     typeof data.pCashAmount !== 'number' ||
@@ -120,6 +127,17 @@ export const parsePaymentOrder = (value: unknown): PaymentOrder => {
       !/^\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/.test(url.pathname)
     )
       throw new Error('INVALID_PAYMENT_RESPONSE')
+  } else if (provider === 'polar' && data.checkoutUrl !== null) {
+    if (typeof data.checkoutUrl !== 'string') throw new Error('INVALID_PAYMENT_RESPONSE')
+    const url = new URL(data.checkoutUrl)
+    if (
+      url.protocol !== 'https:' ||
+      url.username ||
+      url.password ||
+      url.hash ||
+      !/^([a-z0-9-]+\.)*polar\.sh$/.test(url.hostname)
+    )
+      throw new Error('INVALID_PAYMENT_RESPONSE')
   } else if (data.checkoutUrl !== null) {
     if (typeof data.checkoutUrl !== 'string') throw new Error('INVALID_PAYMENT_RESPONSE')
     const url = new URL(data.checkoutUrl)
@@ -148,7 +166,9 @@ export const parsePaymentOrder = (value: unknown): PaymentOrder => {
     ...(data.provider === undefined ? {} : { provider }),
     ...(provider === 'paymongo'
       ? { chargeMinor: data.chargeMinor as number, currency: 'PHP' as const }
-      : {}),
+      : provider === 'polar'
+        ? { currency: 'USD' as const }
+        : {}),
     amount,
     pCashAmount: data.pCashAmount,
     status: data.status as PaymentStatus,
@@ -182,6 +202,7 @@ export const parsePaymentSnapshot = (value: unknown): PaymentSnapshot => {
     pCash: data.pCash,
     orders: data.orders.map(parsePaymentOrder),
     ...(data.paymongo === undefined ? {} : { paymongo: parsePaymongoSnapshot(data.paymongo) }),
+    ...(data.polar === undefined ? {} : { polar: parsePolarSnapshot(data.polar) }),
     ...(data.manual === undefined ? {} : { manual: parseManualSnapshot(data.manual) })
   }
 }
@@ -326,6 +347,25 @@ const parsePaymongoSnapshot = (value: unknown): NonNullable<PaymentSnapshot['pay
     currency: 'PHP',
     ...(data.communityId == null ? {} : {communityId:validatePaymentId(data.communityId)}),
     minorPerUsd: data.minorPerUsd as number | null,
+    orders
+  }
+}
+
+const parsePolarSnapshot = (value: unknown): NonNullable<PaymentSnapshot['polar']> => {
+  const data = object(value)
+  if (
+    typeof data.enabled !== 'boolean' ||
+    data.currency !== 'USD' ||
+    !Array.isArray(data.orders) ||
+    data.orders.length > 10
+  )
+    throw new Error('INVALID_PAYMENT_RESPONSE')
+  const orders = data.orders.map(parsePaymentOrder)
+  if (orders.some((o) => o.provider !== 'polar')) throw new Error('INVALID_PAYMENT_RESPONSE')
+  return {
+    enabled: data.enabled,
+    currency: 'USD',
+    ...(data.communityId == null ? {} : {communityId:validatePaymentId(data.communityId)}),
     orders
   }
 }

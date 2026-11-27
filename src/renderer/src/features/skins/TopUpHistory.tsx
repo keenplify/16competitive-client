@@ -12,6 +12,7 @@ export function TopUpHistory(): JSX.Element {
   const { snapshot, busy, error, hideHistory, load, resumeManual } = usePaymentsStore()
   const entries = [
     ...(snapshot?.paymongo?.orders ?? []).map((order) => ({ kind: 'paymongo' as const, order })),
+    ...(snapshot?.polar?.orders ?? []).map((order) => ({ kind: 'polar' as const, order })),
     ...(snapshot?.orders ?? []).map((order) => ({ kind: 'paymento' as const, order })),
     ...(snapshot?.manual?.orders ?? []).map((order) => ({ kind: 'manual' as const, order }))
   ].sort((a, b) => Date.parse(b.order.createdAt) - Date.parse(a.order.createdAt))
@@ -78,7 +79,9 @@ export function TopUpHistory(): JSX.Element {
                           ? `${entry.order.amount.toLocaleString(language)} USDT · Paymento`
                           : entry.kind === 'paymongo'
                             ? `${new Intl.NumberFormat(language, { style: 'currency', currency: 'PHP' }).format((entry.order.chargeMinor ?? 0) / 100)} · PayMongo`
-                            : `${new Intl.NumberFormat(language, { style: 'currency', currency: entry.order.method.currency }).format(entry.order.transferMinor / 100)} · ${entry.order.method.name}`}
+                            : entry.kind === 'polar'
+                              ? `${new Intl.NumberFormat(language, { style: 'currency', currency: 'USD' }).format(entry.order.amount)} · Polar`
+                              : `${new Intl.NumberFormat(language, { style: 'currency', currency: entry.order.method.currency }).format(entry.order.transferMinor / 100)} · ${entry.order.method.name}`}
                       </p>
                       <p className="text-xs text-neutral-400">
                         {new Date(entry.order.createdAt).toLocaleString(language)}
@@ -117,7 +120,9 @@ export function TopUpHistory(): JSX.Element {
                               {t(
                                 entry.kind === 'paymongo'
                                   ? 'payments.paymongoCheckout'
-                                  : 'payments.checkout'
+                                  : entry.kind === 'polar'
+                                    ? 'payments.polarCheckout'
+                                    : 'payments.checkout'
                               )}
                               <ExternalLink className="size-4" aria-hidden="true" />
                             </a>

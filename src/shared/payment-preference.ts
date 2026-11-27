@@ -24,14 +24,31 @@ export function topUpMethods(
   memberCommunityId = communityOnly
 ) {
   const providers = (
-    preferred === 'paymongo' ? ['paymongo', 'paymento'] : ['paymento', 'paymongo']
+    preferred === 'paymongo'
+      ? ['paymongo', 'paymento', 'polar']
+      : ['paymento', 'paymongo', 'polar']
   ).map((id) => ({
     id,
-    label: id === 'paymongo' ? 'PayMongo · PHP' : 'Paymento · USDT',
-    disabled: id === 'paymongo' ? !snapshot?.paymongo?.enabled : !snapshot?.enabled
+    label:
+      id === 'paymongo'
+        ? 'PayMongo · PHP'
+        : id === 'polar'
+          ? 'Polar · Card'
+          : 'Paymento · USDT',
+    disabled:
+      id === 'paymongo'
+        ? !snapshot?.paymongo?.enabled
+        : id === 'polar'
+          ? !snapshot?.polar?.enabled
+          : !snapshot?.enabled
   }))
   const methods = [
-    ...providers.filter(method => !communityOnly || (method.id === 'paymongo' && snapshot?.paymongo?.communityId === communityOnly)),
+    ...providers.filter(
+      (method) =>
+        !communityOnly ||
+        (method.id === 'paymongo' && snapshot?.paymongo?.communityId === communityOnly) ||
+        (method.id === 'polar' && snapshot?.polar?.communityId === communityOnly)
+    ),
     ...(snapshot?.manual?.methods ?? []).filter(method => !communityOnly || method.communityId === communityOnly).map((method) => ({
       id: method.id,
       label: method.name + ' · ' + method.currency,
