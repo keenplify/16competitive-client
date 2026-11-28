@@ -5292,3 +5292,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Added Polar card top-ups.
 - Card top-ups now default to Polar instead of USDT.
 - Fixed checkout preference handling for the Polar payment option.
+
+## v2026.1128.2 — 2026-11-28
+
+### Payments
+
+- Prefer Polar card top-ups over Paymento when PayMongo is unavailable.
