@@ -177,13 +177,13 @@ test('P-Cash entry preserves 100 P-Cash per whole dollar and rejects fractional-
     assert.equal(usdFromPCash(amount), null)
 })
 
-test('Philippine account, locale and timezone hints prefer PayMongo without changing other markets', async () => {
+test('Philippine account, locale and timezone hints prefer PayMongo and US accounts prefer Polar', async () => {
   const { preferredPaymentProvider } = await import('../src/shared/payment-preference.ts')
   assert.equal(preferredPaymentProvider('PH', 'UTC', ['en-US']), 'paymongo')
   assert.equal(preferredPaymentProvider(null, 'Asia/Manila', ['en-US']), 'paymongo')
   assert.equal(preferredPaymentProvider(null, 'UTC', ['en-PH']), 'paymongo')
   assert.equal(preferredPaymentProvider(null, 'UTC', ['fil']), 'paymongo')
-  assert.equal(preferredPaymentProvider('US', 'America/New_York', ['en-US']), 'paymento')
+  assert.equal(preferredPaymentProvider('US', 'America/New_York', ['en-US']), 'polar')
 })
 
 test('community checkout defaults to its own GCash number even with a US locale', async () => {
