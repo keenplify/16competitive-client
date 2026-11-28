@@ -5298,3 +5298,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Payments
 
 - Prefer Polar card top-ups over Paymento when PayMongo is unavailable.
+
+## v2026.1128.3 — 2026-11-28
+
+### Rewards
+
+- Confirmed P-Cash top-ups now display an animated reward popup.
