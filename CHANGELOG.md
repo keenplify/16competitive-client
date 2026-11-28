@@ -5284,3 +5284,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added missing match autoexec setup from the partner installation.
 - Improved partner bootstrap and match startup delivery to the correct game process.
+
+## v2026.1128.1 — 2026-11-28
+
+### Payments
+
+- Added Polar card top-ups.
+- Card top-ups now default to Polar instead of USDT.
+- Fixed checkout preference handling for the Polar payment option.
