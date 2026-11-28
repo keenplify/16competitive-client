@@ -25,7 +25,7 @@ export function topUpMethods(
 ) {
   const providers = (
     preferred === 'paymongo'
-      ? ['paymongo', 'paymento', 'polar']
+      ? ['paymongo', 'polar', 'paymento']
       : preferred === 'polar'
         ? ['polar', 'paymento', 'paymongo']
         : ['paymento', 'paymongo', 'polar']

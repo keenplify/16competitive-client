@@ -198,3 +198,12 @@ test('community checkout defaults to its own GCash number even with a US locale'
   assert.deepEqual(topUpMethods('paymento','community_gcash',{...data,manual:{methods:[]}},community),[])
   assert.equal(topUpMethods('paymento',null,data)[0].id,'paymento')
 })
+
+test('Philippine checkout lists Polar above Paymento when PayMongo is unavailable', async () => {
+  const { preferredPaymentProvider, topUpMethods } = await import('../src/shared/payment-preference.ts')
+  const preferred = preferredPaymentProvider('PH', 'Asia/Manila', ['en-PH'])
+  const snapshot = { enabled: true, paymongo: { enabled: false }, polar: { enabled: true } }
+  const options = topUpMethods(preferred, null, snapshot)
+  assert.deepEqual(options.map(({ id }) => id), ['paymongo', 'polar', 'paymento'])
+  assert.equal(options.find(({ disabled }) => !disabled)?.id, 'polar')
+})
