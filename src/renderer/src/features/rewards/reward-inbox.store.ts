@@ -7,7 +7,7 @@ interface RewardState {
   loading: boolean
   consuming: boolean
   setOwner: (owner: string | null) => void
-  load: () => Promise<void>
+  load: (topUpsOnly?: boolean) => Promise<void>
   consume: () => Promise<void>
 }
 let generation = 0
@@ -21,13 +21,25 @@ export const useRewardInbox = create<RewardState>((set, get) => ({
     generation++
     set({ owner, receipts: [], loading: false, consuming: false })
   },
-  load: async () => {
-    if (!get().owner || get().loading || get().receipts.length || get().consuming) return
+  load: async (topUpsOnly = false) => {
+    if (
+      !get().owner ||
+      get().loading ||
+      (get().receipts.length && (!topUpsOnly || get().receipts[0]?.itemId === 'TOP_UP')) ||
+      get().consuming
+    )
+      return
     const request = generation
     set({ loading: true })
     try {
       const snapshot = parseRewardInbox(await window.api.rewards.pending())
-      if (request === generation) set({ receipts: snapshot.rewards })
+      if (request === generation) {
+        const topUp = snapshot.rewards.find(
+          (reward) => reward.type === 'P_CASH' && reward.itemId === 'TOP_UP'
+        )
+        if (topUp) set({ receipts: [topUp] })
+        else if (!topUpsOnly) set({ receipts: snapshot.rewards })
+      }
     } finally {
       if (request === generation) set({ loading: false })
     }

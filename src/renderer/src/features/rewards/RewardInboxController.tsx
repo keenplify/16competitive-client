@@ -5,6 +5,7 @@ import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useTranslation } from '../i18n/i18n'
 import { useRewardInbox } from './reward-inbox.store'
+import { usePaymentsStore } from '../skins/payments.store'
 import { RewardReveal } from './RewardReveal'
 import translations from './reward-translations.json'
 
@@ -22,11 +23,13 @@ export function RewardInboxController(): JSX.Element | null {
   const busy = useRewardInbox((state) => state.consuming)
   const { language } = useTranslation()
   const text = translations[language]
-  const [unobstructed, setUnobstructed] = useState(false)
+  const [surface, setSurface] = useState<'blocked' | 'checkout' | 'clear'>('blocked')
+  const paymentBusy = usePaymentsStore((state) => state.busy)
+  const topUp = receipts[0]?.type === 'P_CASH' && receipts[0]?.itemId === 'TOP_UP'
   const safe =
     account !== null &&
     queue === 'idle' &&
-    (page === 'lobby' || page === 'play' || completed !== null)
+    (page === 'lobby' || page === 'play' || page === 'store' || completed !== null)
 
   useEffect(() => {
     useRewardInbox.getState().setOwner(account)
@@ -34,12 +37,21 @@ export function RewardInboxController(): JSX.Element | null {
   useEffect(() => {
     // Modal focus belongs to one dialog at a time. Also defer when the game has
     // focus: the receipt must be visible to the player, not consumed behind it.
-    const check = (): void =>
-      setUnobstructed(
-        document.visibilityState === 'visible' &&
-          document.hasFocus() &&
-          !document.querySelector('dialog[open]:not([aria-labelledby="reward-reveal-title"])')
+    const check = (): void => {
+      if (document.visibilityState !== 'visible' || !document.hasFocus()) {
+        setSurface('blocked')
+        return
+      }
+      const dialogs = Array.from(
+        document.querySelectorAll('dialog[open]:not([aria-labelledby="reward-reveal-title"])')
       )
+      if (!dialogs.length) setSurface('clear')
+      else if (
+        dialogs.every((dialog) => dialog.getAttribute('aria-labelledby') === 'p-cash-top-up-title')
+      )
+        setSurface('checkout')
+      else setSurface('blocked')
+    }
     check()
     const timer = window.setInterval(check, 500)
     window.addEventListener('focus', check)
@@ -51,11 +63,11 @@ export function RewardInboxController(): JSX.Element | null {
     }
   }, [])
   useEffect(() => {
-    if (!safe || !unobstructed || account !== owner) return
+    if (!safe || surface === 'blocked' || account !== owner) return
     const load = (): void => {
       void useRewardInbox
         .getState()
-        .load()
+        .load(surface === 'checkout' || page === 'store')
         .catch((error) => console.warn('[Rewards] Pending rewards remain on server', error))
     }
     // Allow all match settlements to commit before collecting their combined total.
@@ -65,7 +77,13 @@ export function RewardInboxController(): JSX.Element | null {
       clearTimeout(initial)
       clearInterval(interval)
     }
-  }, [safe, unobstructed, account, owner, completed, receipts.length])
+  }, [safe, surface, page, account, owner, completed, receipts.length])
+
+  useEffect(() => {
+    if (safe && account === owner && surface === 'checkout' && topUp && !paymentBusy) {
+      usePaymentsStore.getState().close()
+    }
+  }, [safe, account, owner, surface, topUp, paymentBusy])
 
   if (!account || account !== owner || receipts.length === 0) return null
   const consume = (): void => {
@@ -99,7 +117,7 @@ export function RewardInboxController(): JSX.Element | null {
   return (
     <RewardReveal
       key={receipts[0].id}
-      active={safe && unobstructed}
+      active={safe && surface === 'clear' && (page !== 'store' || topUp)}
       receipts={receipts}
       busy={busy}
       onContinue={consume}

@@ -126,7 +126,7 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
                   {t('payments.title')}
                 </h2>
                 <p id="p-cash-top-up-rate" className="mt-1 text-sm text-amber-200">
-                  {t(manual || paymongo ? 'payments.usdRate' : 'payments.rate')}
+                  {t(methodId === 'paymento' ? 'payments.rate' : 'payments.usdRate')}
                 </p>
               </div>
             </div>

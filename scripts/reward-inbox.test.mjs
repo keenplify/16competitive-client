@@ -153,3 +153,22 @@ test('all rarity cues are distinct bounded original PCM audio with fade-outs', a
     assert.ok(Math.abs(wav.readInt16LE(wav.length - 2)) < 20)
   }
 })
+
+test('checkout reveals each confirmed top-up alone and keeps game rewards pending', async () => {
+  const game = reward(10)
+  const purchase = { ...reward(11, 100, 'P_CASH'), itemId: 'TOP_UP' }
+  let pending = [game]
+  window.api.rewards.pending = async () => ({ rewards: pending })
+  window.api.rewards.consume = async (ids) => {
+    pending = pending.filter((receipt) => !ids.includes(receipt.id))
+  }
+  store.getState().setOwner('buyer')
+  await store.getState().load(true)
+  assert.deepEqual(store.getState().receipts, [])
+  await store.getState().load()
+  pending.push(purchase)
+  await store.getState().load(true)
+  assert.deepEqual(store.getState().receipts, parseRewardInbox({ rewards: [purchase] }).rewards)
+  await store.getState().consume()
+  assert.deepEqual(pending, [game])
+})
